@@ -65,7 +65,7 @@
       background: #fafafa;
     }
     input[type="number"] {
-      width: 60px;
+      width: 70px;
       padding: 0.2rem;
       border-radius: 6px;
       border: 1px solid #ccc;
@@ -123,7 +123,7 @@
       gap: 0.5rem;
     }
 
-    /* 🔥 Sticky header for the items card */
+    /* Sticky header for items card */
     .sticky-header {
       position: sticky;
       top: 0;
@@ -132,6 +132,12 @@
       padding-bottom: 0.5rem;
       margin-bottom: 0.5rem;
       border-bottom: 1px solid #eee;
+    }
+
+    /* Master quote card */
+    #masterQuoteCard table th,
+    #masterQuoteCard table td {
+      font-size: 0.8rem;
     }
   </style>
 </head>
@@ -223,7 +229,7 @@
     <h2 style="font-size:1.1rem;margin-top:0;">Items</h2>
     <p class="note">Check the items being ordered and enter quantities.</p>
 
-    <!-- 🌟 Sticky header area -->
+    <!-- Sticky header area -->
     <div class="sticky-header">
       <button class="btn" style="margin-top:0;" onclick="generateEmail()">
         Generate Email
@@ -246,28 +252,82 @@
           <th>Item</th>
           <th>UOM</th>
           <th>Qty</th>
+          <th>Price</th>
         </tr>
       </thead>
       <tbody id="itemsTableBody">
-        <tr><td colspan="4">If you can see this, JavaScript did not run.</td></tr>
+        <tr><td colspan="5">If you can see this, JavaScript did not run.</td></tr>
       </tbody>
     </table>
   </div>
 
-  <!-- The old bottom card with button is removed -->
+  <!-- Master quote card (shown when a customer is detected) -->
+  <div class="card" id="masterQuoteCard" style="display:none;">
+    <h2 style="font-size:1.1rem;margin-top:0;">Master Quote</h2>
+    <p class="note" id="masterQuoteNote"></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Item</th>
+          <th>UOM</th>
+          <th>Price</th>
+        </tr>
+      </thead>
+      <tbody id="masterQuoteBody"></tbody>
+    </table>
+  </div>
 
   <script>
     // === CONFIGURE THESE ===
     var WAREHOUSE_EMAIL = "amssupply@outlook.com";
     var COMPANY_NAME = "AMS Supply";
+    var STORAGE_KEY = "ams_customer_quotes_v1";
     // =======================
 
-    // Items will be loaded from items.json
-    // Each item can be: { "name": "...", "uom": "...", "code": "..." }
+    // Items loaded from items.json
+    // Each: { name, uom, code }
     var ITEMS = [];
 
+    // Per-customer master quotes:
+    // {
+    //   normalizedName: {
+    //     displayName: "ABC Trucking",
+    //     items: {
+    //       "09120-00-BRMHH": { name, uom, code, price }
+    //     }
+    //   }
+    // }
+    var CUSTOMER_QUOTES = {};
+    var CURRENT_CUSTOMER_KEY = null;
+
     function trimString(str) {
-      return str.replace(/^\s+|\s+$/g, "");
+      return (str || "").replace(/^\s+|\s+$/g, "");
+    }
+
+    function normalizeCustomerName(name) {
+      return trimString(name).toLowerCase();
+    }
+
+    function safeLoadCustomerQuotes() {
+      try {
+        var raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        var data = JSON.parse(raw);
+        if (data && typeof data === "object") {
+          CUSTOMER_QUOTES = data;
+        }
+      } catch (e) {
+        console.log("Could not load customer quotes:", e);
+      }
+    }
+
+    function safeSaveCustomerQuotes() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(CUSTOMER_QUOTES));
+      } catch (e) {
+        console.log("Could not save customer quotes:", e);
+      }
     }
 
     function cleanName(rawName, uom) {
@@ -318,15 +378,26 @@
         qtyInput.id = "itemQty_" + i;
         qtyCell.appendChild(qtyInput);
 
+        // Price input (per customer)
+        var priceCell = document.createElement("td");
+        var priceInput = document.createElement("input");
+        priceInput.type = "number";
+        priceInput.min = "0";
+        priceInput.step = "0.01";
+        priceInput.inputMode = "decimal";
+        priceInput.id = "itemPrice_" + i;
+        priceCell.appendChild(priceInput);
+
         row.appendChild(checkCell);
         row.appendChild(nameCell);
         row.appendChild(uomCell);
         row.appendChild(qtyCell);
+        row.appendChild(priceCell);
 
         tbody.appendChild(row);
       }
 
-      // Set up checkbox → qty enable/disable
+      // Checkbox → qty enable/disable
       var allCheckboxes = tbody.querySelectorAll("input[type=checkbox]");
       for (var j = 0; j < allCheckboxes.length; j++) {
         allCheckboxes[j].onchange = function () {
@@ -340,6 +411,11 @@
             input.value = "";
           }
         };
+      }
+
+      // If a customer is already selected and has a quote, apply prices
+      if (CURRENT_CUSTOMER_KEY && CUSTOMER_QUOTES[CURRENT_CUSTOMER_KEY]) {
+        applyMasterQuoteToTable(CUSTOMER_QUOTES[CURRENT_CUSTOMER_KEY]);
       }
     }
 
@@ -527,6 +603,111 @@
       return true;
     }
 
+    function applyMasterQuoteToTable(cust) {
+      if (!cust || !cust.items) return;
+      for (var i = 0; i < ITEMS.length; i++) {
+        var code = ITEMS[i].code || "";
+        if (!code) continue;
+        var entry = cust.items[code];
+        if (!entry || typeof entry.price !== "number") continue;
+        var priceInput = document.getElementById("itemPrice_" + i);
+        if (priceInput) {
+          priceInput.value = entry.price.toFixed(2);
+        }
+      }
+    }
+
+    function renderMasterQuote(cust) {
+      var card = document.getElementById("masterQuoteCard");
+      var note = document.getElementById("masterQuoteNote");
+      var tbody = document.getElementById("masterQuoteBody");
+      if (!card || !note || !tbody) return;
+
+      tbody.innerHTML = "";
+
+      if (!cust) {
+        // Show message for new/unknown customer
+        card.style.display = "block";
+        note.textContent = "No master quote yet for this customer. Once they place an order, their items and prices will appear here.";
+        return;
+      }
+
+      card.style.display = "block";
+      note.textContent = "Saved pricing for " + (cust.displayName || "") + ". You can update prices in the main items list; changes will be saved after each order.";
+
+      var codes = Object.keys(cust.items || {}).sort();
+      if (codes.length === 0) {
+        var row = document.createElement("tr");
+        var cell = document.createElement("td");
+        cell.colSpan = 4;
+        cell.textContent = "No items in this customer's master quote yet.";
+        row.appendChild(cell);
+        tbody.appendChild(row);
+        return;
+      }
+
+      for (var i = 0; i < codes.length; i++) {
+        var code = codes[i];
+        var entry = cust.items[code];
+        var row = document.createElement("tr");
+
+        var codeCell = document.createElement("td");
+        codeCell.textContent = entry.code || code || "";
+        var nameCell = document.createElement("td");
+        nameCell.textContent = entry.name || "";
+        var uomCell = document.createElement("td");
+        uomCell.textContent = entry.uom || "";
+        var priceCell = document.createElement("td");
+        if (typeof entry.price === "number") {
+          priceCell.textContent = "$" + entry.price.toFixed(2);
+        } else {
+          priceCell.textContent = "-";
+        }
+
+        row.appendChild(codeCell);
+        row.appendChild(nameCell);
+        row.appendChild(uomCell);
+        row.appendChild(priceCell);
+        tbody.appendChild(row);
+      }
+    }
+
+    function setupCustomerNameWatcher() {
+      var input = document.getElementById("customerName");
+      if (!input) return;
+
+      function handleChange() {
+        var rawName = trimString(input.value);
+        if (!rawName) {
+          CURRENT_CUSTOMER_KEY = null;
+          var card = document.getElementById("masterQuoteCard");
+          if (card) card.style.display = "none";
+          return;
+        }
+        var key = normalizeCustomerName(rawName);
+        CURRENT_CUSTOMER_KEY = key;
+        var existing = CUSTOMER_QUOTES[key];
+        if (!existing) {
+          // create empty shell; master quote is empty for now
+          CUSTOMER_QUOTES[key] = { displayName: rawName, items: {} };
+          safeSaveCustomerQuotes();
+          renderMasterQuote(null);
+        } else {
+          // Existing customer: show their quote & apply prices
+          renderMasterQuote(existing);
+          applyMasterQuoteToTable(existing);
+        }
+      }
+
+      input.addEventListener("change", handleChange);
+      input.addEventListener("blur", handleChange);
+
+      // If page loads with a pre-filled name (rare), handle it
+      if (trimString(input.value)) {
+        handleChange();
+      }
+    }
+
     function generateEmail() {
       var customerName = trimString(document.getElementById("customerName").value);
       var shipTo = trimString(document.getElementById("shipTo").value);
@@ -545,6 +726,14 @@
       var lines = [];
       var invalid = false;
 
+      // Ensure CURRENT_CUSTOMER_KEY is set based on the name entered
+      var key = normalizeCustomerName(customerName);
+      CURRENT_CUSTOMER_KEY = key;
+      if (!CUSTOMER_QUOTES[key]) {
+        CUSTOMER_QUOTES[key] = { displayName: customerName, items: {} };
+      }
+      var custQuote = CUSTOMER_QUOTES[key];
+
       // Build item lines
       for (var i = 0; i < ITEMS.length; i++) {
         var checkbox = document.getElementById("itemCheck_" + i);
@@ -558,11 +747,51 @@
             var displayName = cleanName(ITEMS[i].name, ITEMS[i].uom);
             var uomText = ITEMS[i].uom || "";
             var codeText = ITEMS[i].code || "";
+
+            // price from input, else from master quote if available
+            var priceInput = document.getElementById("itemPrice_" + i);
+            var priceRaw = priceInput ? trimString(priceInput.value) : "";
+            var priceNum = priceRaw ? Number(priceRaw) : NaN;
+
+            var storedPrice = null;
+            if (custQuote && custQuote.items && codeText && custQuote.items[codeText] &&
+                typeof custQuote.items[codeText].price === "number") {
+              storedPrice = custQuote.items[codeText].price;
+            }
+
+            var effectivePrice = (!isNaN(priceNum) && priceNum > 0) ? priceNum : storedPrice;
+
             var line = "- " + qty + " x " + displayName + " (" + uomText + ")";
             if (codeText) {
               line += " / " + codeText;
             }
+            if (effectivePrice != null && !isNaN(effectivePrice)) {
+              line += " — $" + effectivePrice.toFixed(2) + " each";
+            }
             lines.push(line);
+
+            // Update master quote for this customer
+            if (!custQuote.items) {
+              custQuote.items = {};
+            }
+            var codeKey = codeText || ("NO-CODE-" + displayName);
+            if (!custQuote.items[codeKey]) {
+              custQuote.items[codeKey] = {
+                name: displayName,
+                uom: uomText,
+                code: codeText,
+                price: (effectivePrice != null && !isNaN(effectivePrice)) ? effectivePrice : undefined
+              };
+            } else {
+              // Update price if a new one was entered
+              if (!isNaN(priceNum) && priceNum > 0) {
+                custQuote.items[codeKey].price = priceNum;
+              }
+              // Keep name/uom/code in sync in case of changes
+              custQuote.items[codeKey].name = displayName;
+              custQuote.items[codeKey].uom = uomText;
+              custQuote.items[codeKey].code = codeText;
+            }
           }
         }
       }
@@ -576,6 +805,11 @@
         alert("Please select at least one item and enter quantities.");
         return;
       }
+
+      // Save updated quotes & refresh master quote display
+      CUSTOMER_QUOTES[key] = custQuote;
+      safeSaveCustomerQuotes();
+      renderMasterQuote(custQuote);
 
       var subject = "Order for " + customerName;
 
@@ -677,10 +911,13 @@
       buildItemsTable();
       setupItemSearch();
       setupNewCustomerSection();
+      setupCustomerNameWatcher();
     }
 
     // Load items from items.json, THEN init
     function loadItemsAndInit() {
+      safeLoadCustomerQuotes();
+
       if (typeof fetch === "function") {
         fetch("items.json")
           .then(function (response) { return response.json(); })
