@@ -434,7 +434,7 @@
         var taxExempt = document.getElementById("taxExempt");
         var county = trimString((document.getElementById("county") && document.getElementById("county").value) || "");
 
-        body += "New customer information:\n\n";
+        body += "New Customer Information:\n\n";
 
         body += "Shipping Address:\n";
         if (shipAddr1) body += shipAddr1 + "\n";
@@ -457,7 +457,7 @@
         body += "\n";
       }
 
-      body += "Thank you,\n" + COMPANY_NAME + " Sales\n";
+      body += "Thank you,\n";
 
       var mailto = "mailto:" + encodeURIComponent(WAREHOUSE_EMAIL)
         + "?subject=" + encodeURIComponent(subject)
