@@ -4,10 +4,10 @@
   <meta charset="UTF-8" />
   <title>AMS Order From</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- PWA manifest + iOS support -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#007aff">
-
-  <!-- iOS PWA support -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="apple-touch-icon" href="icon-192.png">
@@ -134,9 +134,12 @@
   </div>
 
   <script>
-    var WAREHOUSE_EMAIL = "amssupply@outlook.com";
+    // === CONFIGURE THESE ===
+    var WAREHOUSE_EMAIL = "warehouse@yourcompany.com";  // <- change this
     var COMPANY_NAME = "AMS Supply";
+    // =======================
 
+    // Item list (same as before)
     var ITEMS = [
       { name: 'Full Throttle "Wicked Good" (C12A)', uom: 'C12A' },
       { name: 'Undercoat "Wicked Good" (C12A)', uom: 'C12A' },
@@ -208,16 +211,22 @@
       { name: 'SFG-75 "Streetfyter" (BG100)', uom: 'BG100' }
     ];
 
+    function trimString(str) {
+      return str.replace(/^\s+|\s+$/g, "");
+    }
+
+    // Remove "(UOM)" from end of name when it matches the uom
     function cleanName(rawName, uom) {
       if (!rawName || !uom) return rawName || "";
       var name = rawName;
-      var u = uom.replace(/^\s+|\s+$/g, "");
+      var u = trimString(uom);
       var suffix = " (" + u + ")";
-      if (name.indexOf(suffix) === name.length - suffix.length) {
+      if (name.length >= suffix.length &&
+          name.lastIndexOf(suffix) === name.length - suffix.length) {
         name = name.substring(0, name.length - suffix.length);
       }
-      name = name.replace(/\s{2,}/g, " ").replace(/^\s+|\s+$/g, "");
-      return name;
+      name = name.replace(/\s{2,}/g, " ");
+      return trimString(name);
     }
 
     function buildItemsTable() {
@@ -229,36 +238,30 @@
 
         var row = document.createElement("tr");
 
+        // Checkbox
         var checkCell = document.createElement("td");
         var checkbox = document.createElement("input");
         checkbox.type = "checkbox";
         checkbox.id = "itemCheck_" + i;
+        checkbox.setAttribute("data-qty-id", "itemQty_" + i);
+        checkCell.appendChild(checkbox);
 
+        // Name
+        var nameCell = document.createElement("td");
+        nameCell.textContent = cleanName(item.name, item.uom);
+
+        // UOM
+        var uomCell = document.createElement("td");
+        uomCell.textContent = item.uom || "";
+
+        // Qty input
+        var qtyCell = document.createElement("td");
         var qtyInput = document.createElement("input");
         qtyInput.type = "number";
         qtyInput.min = "1";
         qtyInput.step = "1";
         qtyInput.disabled = true;
         qtyInput.id = "itemQty_" + i;
-
-        checkbox.addEventListener("change", (function(qtyInputRef) {
-          return function() {
-            qtyInputRef.disabled = !this.checked;
-            if (!this.checked) qtyInputRef.value = "";
-          };
-        })(qtyInput));
-
-        checkCell.appendChild(checkbox);
-
-        var displayName = cleanName(item.name, item.uom);
-
-        var nameCell = document.createElement("td");
-        nameCell.textContent = displayName;
-
-        var uomCell = document.createElement("td");
-        uomCell.textContent = item.uom || "";
-
-        var qtyCell = document.createElement("td");
         qtyCell.appendChild(qtyInput);
 
         row.appendChild(checkCell);
@@ -268,11 +271,27 @@
 
         tbody.appendChild(row);
       }
+
+      // Set up checkbox → qty enable/disable
+      var allCheckboxes = tbody.querySelectorAll("input[type=checkbox]");
+      for (var j = 0; j < allCheckboxes.length; j++) {
+        allCheckboxes[j].onchange = function () {
+          var qtyId = this.getAttribute("data-qty-id");
+          var input = document.getElementById(qtyId);
+          if (!input) return;
+          if (this.checked) {
+            input.disabled = false;
+          } else {
+            input.disabled = true;
+            input.value = "";
+          }
+        };
+      }
     }
 
     function generateEmail() {
-      var customerName = document.getElementById("customerName").value.replace(/^\s+|\s+$/g, "");
-      var shipTo = document.getElementById("shipTo").value.replace/^\s+|\s+$/g, "");
+      var customerName = trimString(document.getElementById("customerName").value);
+      var shipTo = trimString(document.getElementById("shipTo").value);
 
       if (!customerName) {
         alert("Please enter the customer name.");
@@ -283,19 +302,17 @@
       var invalid = false;
 
       for (var i = 0; i < ITEMS.length; i++) {
-        var item = ITEMS[i];
         var checkbox = document.getElementById("itemCheck_" + i);
         var qtyInput = document.getElementById("itemQty_" + i);
-
         if (checkbox && checkbox.checked) {
-          var qty = qtyInput.value.replace(/^\s+|\s+$/g, "");
+          var qty = trimString(qtyInput.value);
           var qtyNum = Number(qty);
-
           if (!qty || isNaN(qtyNum) || qtyNum <= 0) {
             invalid = true;
           } else {
-            var displayName = cleanName(item.name, item.uom);
-            lines.push("- " + qty + " x " + displayName + " (UOM: " + (item.uom || "") + ")");
+            var displayName = cleanName(ITEMS[i].name, ITEMS[i].uom);
+            lines.push("- " + qty + " x " + displayName +
+                       " (UOM: " + (ITEMS[i].uom || "") + ")");
           }
         }
       }
@@ -329,11 +346,19 @@
       window.location.href = mailto;
     }
 
-    buildItemsTable();
+    // Build table when page loads
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", buildItemsTable);
+    } else {
+      buildItemsTable();
+    }
 
+    // Register service worker (for PWA)
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("service-worker.js")
-        .then(function () { console.log("Service worker registered."); });
+        .catch(function (err) {
+          console.log("Service worker registration failed:", err);
+        });
     }
   </script>
 
