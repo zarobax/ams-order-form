@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AMS Order From</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#007aff">
+
+  <!-- iOS PWA support -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 1rem;
+      background: #f5f5f7;
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin-bottom: 0.5rem;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      margin-bottom: 1rem;
+    }
+    label {
+      font-size: 0.9rem;
+      display: block;
+      margin-bottom: 0.3rem;
+    }
+    input[type="text"],
+    textarea {
+      width: 100%;
+      padding: 0.5rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 0.9rem;
+      box-sizing: border-box;
+    }
+    textarea {
+      min-height: 60px;
+      resize: vertical;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    th, td {
+      padding: 0.4rem;
+      text-align: left;
+    }
+    th {
+      border-bottom: 1px solid #ddd;
+      font-weight: 600;
+    }
+    tr:nth-child(even) {
+      background: #fafafa;
+    }
+    input[type="number"] {
+      width: 60px;
+      padding: 0.2rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 0.85rem;
+    }
+    input[type="number"]:disabled {
+      background: #eee;
+      color: #888;
+    }
+    .btn {
+      width: 100%;
+      padding: 0.8rem;
+      border: none;
+      border-radius: 999px;
+      font-size: 1rem;
+      font-weight: 600;
+      margin-top: 0.5rem;
+      cursor: pointer;
+      background: #007aff;
+      color: white;
+    }
+    .btn:active {
+      opacity: 0.8;
+    }
+    .note {
+      font-size: 0.8rem;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>AMS Order From</h1>
+
+  <div class="card">
+    <label for="customerName">Customer Name</label>
+    <input id="customerName" type="text" placeholder="e.g. ABC Trucking" />
+
+    <label for="shipTo" style="margin-top:0.6rem;">Ship To / Notes (optional)</label>
+    <textarea id="shipTo" placeholder="Address, special instructions, etc."></textarea>
+  </div>
+
+  <div class="card">
+    <h2 style="font-size:1.1rem;margin-top:0;">Items</h2>
+    <p class="note">Check the items being ordered and enter quantities.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>✔</th>
+          <th>Item</th>
+          <th>UOM</th>
+          <th>Qty</th>
+        </tr>
+      </thead>
+      <tbody id="itemsTableBody">
+        <tr><td colspan="4">If you can see this, JavaScript did not run.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <button class="btn" onclick="generateEmail()">Generate Email</button>
+    <p class="note">
+      This will open your Mail app with the email pre-filled. You can review and send.
+    </p>
+  </div>
+
+  <script>
+    var WAREHOUSE_EMAIL = "amssupply@outlook.com";
+    var COMPANY_NAME = "AMS Supply";
+
+    var ITEMS = [
+      { name: 'Full Throttle "Wicked Good" (C12A)', uom: 'C12A' },
+      { name: 'Undercoat "Wicked Good" (C12A)', uom: 'C12A' },
+      { name: 'Dyn-O-Myte "Wicked Good" (C4G)', uom: 'C4G' },
+      { name: 'Dyn-O-Myte "Wicked Good" (P5G)', uom: 'P5G' },
+      { name: 'Dyn-O-Myte "Wicked Good" (K15G)', uom: 'K15G' },
+      { name: 'Dyn-O-Myte "Wicked Good" (D55G)', uom: 'D55G' },
+      { name: 'Dyn-O-Myte "Wicked Good" (TT)', uom: 'T275G' },
+      { name: 'Convoy "Wicked Good" (P42#)', uom: 'P42#' },
+      { name: 'Convoy "Wicked Good" (D380#)', uom: 'D380#' },
+      { name: 'Rad 1 "Wicked Good" (C12A)', uom: 'C12A' },
+      { name: 'Rad-1 "Wicked Good" (P5G)', uom: 'P5G' },
+      { name: 'Attack "Wicked Good" (P45#)', uom: 'P45#' },
+      { name: 'Attack "Wicked Good" (D300#)', uom: 'D300#' },
+      { name: 'Wipe Out "Wicked Good" (C12Q)', uom: 'C12Q' },
+      { name: 'Wipe Out "Wicked Good" (D55G)', uom: 'D55G' },
+      { name: 'Gleam "Wicked Good" (C12A)', uom: 'C12A' },
+      { name: 'Clear View "Wicked Good" (C12A)', uom: 'C12A' },
+      { name: 'Streak Free "Wicked Good" (C12Q)', uom: 'C12Q' },
+      { name: 'Wicked Good Hand Cleaner 3 oz.Sample', uom: 'EA' },
+      { name: 'Wicked Good Hand Cleaner (C4TB) 3.55 L', uom: 'C4TB' },
+      { name: 'Wicked Good Hand Cleaner (C4FTG)', uom: 'C4FTG' },
+      { name: 'X-Wipes "Wicked Good" (C6TB)', uom: 'C6TB' },
+      { name: 'Bee Bopper II Wasp & Hornet Spray (C12A)', uom: 'C12A' },
+      { name: 'Super-Blast "Wicked Good" (C4G)', uom: 'C4G' },
+      { name: 'Super-Blast "Wicked Good" (P5G)', uom: 'P5G' },
+      { name: 'Super-Blast "Wicked Good" (D55G)', uom: 'D55G' },
+      { name: 'Super M "Wicked Good" (C4G)', uom: 'C4G' },
+      { name: 'Super M "Wicked Good" (P5G)', uom: 'P5G' },
+      { name: 'Super M "Wicked Good" (D55G)', uom: 'D55G' },
+      { name: 'Sonic Boom "Wicked Good" (C4G)', uom: 'C4G' },
+      { name: 'Sonic Boom "Wicked Good" (P5G)', uom: 'P5G' },
+      { name: 'Sonic Boom "Wicked Good" (D55G)', uom: 'D55G' },
+      { name: 'Sonic Boom "Wicked Good" (T275G)', uom: 'T275G' },
+      { name: 'Alum-Bright "Wicked Good" (C4G)', uom: 'C4G' },
+      { name: 'Alum-Bright "Wicked Good" (P5G)', uom: 'P5G' },
+      { name: 'Alum-Bright "Wicked Good" (D55G)', uom: 'D55G' },
+      { name: 'Railroad "Wicked Good" (C4G)', uom: 'C4G' },
+      { name: 'Railroad "Wicked Good" (P5G)', uom: 'P5G' },
+      { name: 'Railroad "Wicked Good" (D55G)', uom: 'D55G' },
+      { name: 'A-One Plus "Wicked Good" (P5G)', uom: 'P5G' },
+      { name: 'Cyclone "Wicked Good" (C12Q)', uom: 'C12Q' },
+      { name: 'Super Bowl "Wicked Good" (C12Q)', uom: 'C12Q' },
+      { name: 'Oven Cleaner "Wicked Good" (C4G)', uom: 'C4G' },
+      { name: 'Oven Cleaner "Wicked Good" (P5G)', uom: 'P5G' },
+      { name: 'Anti-Seize "Vibra-Tite" (TB) 8 oz.', uom: 'TB' },
+      { name: 'FRP "Wicked Good" (C12A)', uom: 'C12A' },
+      { name: '4-Way NF "Wicked Good" 17 oz. (C12A)', uom: 'C12A' },
+      { name: '#5 "Wicked Good" (C12A)', uom: 'C12A' },
+      { name: 'Ultra Lube "Wicked Good" (C12A)', uom: 'C12A' },
+      { name: 'Wipe - Detail 450 BFP (C450)', uom: 'C450' },
+      { name: 'Roll Towel Red Shop Jumbo (Each)', uom: 'EA' },
+      { name: 'RTV Clear "Wicked Good" (C6A)', uom: 'C6A' },
+      { name: 'RTV Black "Wicked Good" (C6A)', uom: 'C6A' },
+      { name: 'RTV Red "Wicked Good" (C6A)', uom: 'C6A' },
+      { name: '140 Flash Solvent "Wicked Good" (P5G)', uom: 'P5G' },
+      { name: '140 Flash Solvent "Wicked Good" (D55G)', uom: 'D55G' },
+      { name: 'Fast Break "Wicked Good" (C12A)', uom: 'C12A' },
+      { name: 'Wicked Good Brake Cleaner (P5G)', uom: 'P5G' },
+      { name: 'Wicked Good Brake Cleaner (K16G)', uom: 'K16G' },
+      { name: 'Wicked Good Brake Cleaner (D55G)', uom: 'D55G' },
+      { name: 'Big Block "Wicked Good" (C12A)', uom: 'C12A' },
+      { name: 'Big Block "Wicked Good" (P5G)', uom: 'P5G' },
+      { name: 'Big Block "Wicked Good" (K16G)', uom: 'K16G' },
+      { name: 'Big Block "Wicked Good" (D55G)', uom: 'D55G' },
+      { name: 'Orang-A-Tang "Wicked Good" (C12A)', uom: 'C12A' },
+      { name: 'Orang-A-Tang "Wicked Good" (P5G)', uom: 'P5G' },
+      { name: 'Orang-A-Tang "Wicked Good" (D55G)', uom: 'D55G' },
+      { name: 'SFG-75 "Streetfyter" (BG100)', uom: 'BG100' }
+    ];
+
+    function cleanName(rawName, uom) {
+      if (!rawName || !uom) return rawName || "";
+      var name = rawName;
+      var u = uom.replace(/^\s+|\s+$/g, "");
+      var suffix = " (" + u + ")";
+      if (name.indexOf(suffix) === name.length - suffix.length) {
+        name = name.substring(0, name.length - suffix.length);
+      }
+      name = name.replace(/\s{2,}/g, " ").replace(/^\s+|\s+$/g, "");
+      return name;
+    }
+
+    function buildItemsTable() {
+      var tbody = document.getElementById("itemsTableBody");
+      tbody.innerHTML = "";
+
+      for (var i = 0; i < ITEMS.length; i++) {
+        var item = ITEMS[i];
+
+        var row = document.createElement("tr");
+
+        var checkCell = document.createElement("td");
+        var checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.id = "itemCheck_" + i;
+
+        var qtyInput = document.createElement("input");
+        qtyInput.type = "number";
+        qtyInput.min = "1";
+        qtyInput.step = "1";
+        qtyInput.disabled = true;
+        qtyInput.id = "itemQty_" + i;
+
+        checkbox.addEventListener("change", (function(qtyInputRef) {
+          return function() {
+            qtyInputRef.disabled = !this.checked;
+            if (!this.checked) qtyInputRef.value = "";
+          };
+        })(qtyInput));
+
+        checkCell.appendChild(checkbox);
+
+        var displayName = cleanName(item.name, item.uom);
+
+        var nameCell = document.createElement("td");
+        nameCell.textContent = displayName;
+
+        var uomCell = document.createElement("td");
+        uomCell.textContent = item.uom || "";
+
+        var qtyCell = document.createElement("td");
+        qtyCell.appendChild(qtyInput);
+
+        row.appendChild(checkCell);
+        row.appendChild(nameCell);
+        row.appendChild(uomCell);
+        row.appendChild(qtyCell);
+
+        tbody.appendChild(row);
+      }
+    }
+
+    function generateEmail() {
+      var customerName = document.getElementById("customerName").value.replace(/^\s+|\s+$/g, "");
+      var shipTo = document.getElementById("shipTo").value.replace/^\s+|\s+$/g, "");
+
+      if (!customerName) {
+        alert("Please enter the customer name.");
+        return;
+      }
+
+      var lines = [];
+      var invalid = false;
+
+      for (var i = 0; i < ITEMS.length; i++) {
+        var item = ITEMS[i];
+        var checkbox = document.getElementById("itemCheck_" + i);
+        var qtyInput = document.getElementById("itemQty_" + i);
+
+        if (checkbox && checkbox.checked) {
+          var qty = qtyInput.value.replace(/^\s+|\s+$/g, "");
+          var qtyNum = Number(qty);
+
+          if (!qty || isNaN(qtyNum) || qtyNum <= 0) {
+            invalid = true;
+          } else {
+            var displayName = cleanName(item.name, item.uom);
+            lines.push("- " + qty + " x " + displayName + " (UOM: " + (item.uom || "") + ")");
+          }
+        }
+      }
+
+      if (invalid) {
+        alert("For each checked item, enter a quantity of at least 1.");
+        return;
+      }
+
+      if (lines.length === 0) {
+        alert("Please select at least one item and enter quantities.");
+        return;
+      }
+
+      var subject = "Order for " + customerName;
+
+      var body = "New order for customer: " + customerName + "\n\n";
+      body += "Please pick and pack the following:\n\n";
+      body += lines.join("\n") + "\n\n";
+
+      if (shipTo) {
+        body += "Ship To / Notes:\n" + shipTo + "\n\n";
+      }
+
+      body += "Thank you,\n" + COMPANY_NAME + " Sales\n";
+
+      var mailto = "mailto:" + encodeURIComponent(WAREHOUSE_EMAIL)
+        + "?subject=" + encodeURIComponent(subject)
+        + "&body=" + encodeURIComponent(body);
+
+      window.location.href = mailto;
+    }
+
+    buildItemsTable();
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js")
+        .then(function () { console.log("Service worker registered."); });
+    }
+  </script>
+
+</body>
+</html>
