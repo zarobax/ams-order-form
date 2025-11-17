@@ -117,6 +117,11 @@
       font-weight: 600;
       margin: 0.4rem 0 0.2rem 0;
     }
+    .row-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.5rem;
+    }
   </style>
 </head>
 <body>
@@ -142,14 +147,22 @@
         <!-- Shipping Address -->
         <div>
           <div class="subheading">Shipping Address</div>
-          <label for="shipAddr1">Address Line 1</label>
+          <label for="shipAddr1">Address Line 1 *</label>
           <input type="text" id="shipAddr1" />
-          <label for="shipAddr2">Address Line 2</label>
+          <label for="shipAddr2">Address Line 2 (optional)</label>
           <input type="text" id="shipAddr2" />
-          <label for="shipCityStateZip">City, State, Zip</label>
-          <input type="text" id="shipCityStateZip" />
-          <label for="shipContact">Contact info</label>
-          <input type="text" id="shipContact" />
+
+          <label>City, State, Zip *</label>
+          <div class="row-3">
+            <input type="text" id="shipCity" placeholder="City" />
+            <input type="text" id="shipState" placeholder="State" />
+            <input type="text" id="shipZip" placeholder="Zip" />
+          </div>
+
+          <label>Contact info *</label>
+          <input type="text" id="shipContactName" placeholder="Contact Name" />
+          <input type="text" id="shipContactPhone" placeholder="Contact Phone Number" />
+          <input type="text" id="shipContactEmail" placeholder="Contact Email" />
         </div>
 
         <!-- Billing Address -->
@@ -161,14 +174,22 @@
             <label for="billingSameAsShipping" style="margin:0;">Billing same as shipping</label>
           </div>
 
-          <label for="billAddr1">Address Line 1</label>
+          <label for="billAddr1">Address Line 1 *</label>
           <input type="text" id="billAddr1" />
-          <label for="billAddr2">Address Line 2</label>
+          <label for="billAddr2">Address Line 2 (optional)</label>
           <input type="text" id="billAddr2" />
-          <label for="billCityStateZip">City, State, Zip</label>
-          <input type="text" id="billCityStateZip" />
-          <label for="billContact">Contact Info (for AP)</label>
-          <input type="text" id="billContact" />
+
+          <label>City, State, Zip *</label>
+          <div class="row-3">
+            <input type="text" id="billCity" placeholder="City" />
+            <input type="text" id="billState" placeholder="State" />
+            <input type="text" id="billZip" placeholder="Zip" />
+          </div>
+
+          <label>Contact Info (for AP) *</label>
+          <input type="text" id="billContactName" placeholder="Contact Name" />
+          <input type="text" id="billContactPhone" placeholder="Contact Phone Number" />
+          <input type="text" id="billContactEmail" placeholder="Contact Email" />
         </div>
       </div>
 
@@ -180,7 +201,7 @@
         </div>
 
         <div id="countyRow" style="margin-top:0.4rem;">
-          <label for="county">County (only if not tax exempt)</label>
+          <label for="county">County (only if not tax exempt) *</label>
           <input type="text" id="county" />
         </div>
       </div>
@@ -316,31 +337,52 @@
       function setBillingSameState() {
         var shipAddr1 = document.getElementById("shipAddr1");
         var shipAddr2 = document.getElementById("shipAddr2");
-        var shipCityStateZip = document.getElementById("shipCityStateZip");
-        var shipContact = document.getElementById("shipContact");
+        var shipCity = document.getElementById("shipCity");
+        var shipState = document.getElementById("shipState");
+        var shipZip = document.getElementById("shipZip");
+        var shipContactName = document.getElementById("shipContactName");
+        var shipContactPhone = document.getElementById("shipContactPhone");
+        var shipContactEmail = document.getElementById("shipContactEmail");
 
         var billAddr1 = document.getElementById("billAddr1");
         var billAddr2 = document.getElementById("billAddr2");
-        var billCityStateZip = document.getElementById("billCityStateZip");
-        var billContact = document.getElementById("billContact");
+        var billCity = document.getElementById("billCity");
+        var billState = document.getElementById("billState");
+        var billZip = document.getElementById("billZip");
+        var billContactName = document.getElementById("billContactName");
+        var billContactPhone = document.getElementById("billContactPhone");
+        var billContactEmail = document.getElementById("billContactEmail");
 
-        if (!billAddr1 || !billAddr2 || !billCityStateZip || !billContact) return;
+        if (!billAddr1 || !billAddr2 || !billCity || !billState || !billZip ||
+            !billContactName || !billContactPhone || !billContactEmail) return;
 
         if (billingSame && billingSame.checked) {
           billAddr1.value = shipAddr1 ? shipAddr1.value : "";
           billAddr2.value = shipAddr2 ? shipAddr2.value : "";
-          billCityStateZip.value = shipCityStateZip ? shipCityStateZip.value : "";
-          billContact.value = shipContact ? shipContact.value : "";
+          billCity.value = shipCity ? shipCity.value : "";
+          billState.value = shipState ? shipState.value : "";
+          billZip.value = shipZip ? shipZip.value : "";
+          billContactName.value = shipContactName ? shipContactName.value : "";
+          billContactPhone.value = shipContactPhone ? shipContactPhone.value : "";
+          billContactEmail.value = shipContactEmail ? shipContactEmail.value : "";
 
           billAddr1.disabled = true;
           billAddr2.disabled = true;
-          billCityStateZip.disabled = true;
-          billContact.disabled = true;
+          billCity.disabled = true;
+          billState.disabled = true;
+          billZip.disabled = true;
+          billContactName.disabled = true;
+          billContactPhone.disabled = true;
+          billContactEmail.disabled = true;
         } else {
           billAddr1.disabled = false;
           billAddr2.disabled = false;
-          billCityStateZip.disabled = false;
-          billContact.disabled = false;
+          billCity.disabled = false;
+          billState.disabled = false;
+          billZip.disabled = false;
+          billContactName.disabled = false;
+          billContactPhone.disabled = false;
+          billContactEmail.disabled = false;
         }
       }
 
@@ -369,6 +411,63 @@
       }
     }
 
+    function validateNewCustomerFields() {
+      var newCustomer = document.getElementById("newCustomer");
+      if (!(newCustomer && newCustomer.checked)) {
+        return true; // no extra validation needed
+      }
+
+      function val(id) {
+        var el = document.getElementById(id);
+        return el ? trimString(el.value || "") : "";
+      }
+
+      // Shipping required (except shipAddr2)
+      var shipAddr1 = val("shipAddr1");
+      var shipCity = val("shipCity");
+      var shipState = val("shipState");
+      var shipZip = val("shipZip");
+      var shipContactName = val("shipContactName");
+      var shipContactPhone = val("shipContactPhone");
+      var shipContactEmail = val("shipContactEmail");
+
+      if (!shipAddr1 || !shipCity || !shipState || !shipZip ||
+          !shipContactName || !shipContactPhone || !shipContactEmail) {
+        alert("Please fill in all required Shipping fields for the new customer (everything with *).");
+        return false;
+      }
+
+      var billingSame = document.getElementById("billingSameAsShipping");
+      if (!billingSame || !billingSame.checked) {
+        // Billing required (except billAddr2)
+        var billAddr1 = val("billAddr1");
+        var billCity = val("billCity");
+        var billState = val("billState");
+        var billZip = val("billZip");
+        var billContactName = val("billContactName");
+        var billContactPhone = val("billContactPhone");
+        var billContactEmail = val("billContactEmail");
+
+        if (!billAddr1 || !billCity || !billState || !billZip ||
+            !billContactName || !billContactPhone || !billContactEmail) {
+          alert("Please fill in all required Billing fields for the new customer (everything with *).");
+          return false;
+        }
+      }
+
+      var taxExempt = document.getElementById("taxExempt");
+      var county = val("county");
+      if (!(taxExempt && taxExempt.checked)) {
+        // not tax exempt → county required
+        if (!county) {
+          alert("Please enter County for the new customer (required if not tax exempt).");
+          return false;
+        }
+      }
+
+      return true;
+    }
+
     function generateEmail() {
       var customerName = trimString(document.getElementById("customerName").value);
       var shipTo = trimString(document.getElementById("shipTo").value);
@@ -376,6 +475,11 @@
 
       if (!customerName) {
         alert("Please enter the customer name.");
+        return;
+      }
+
+      // Validate new customer fields if needed
+      if (!validateNewCustomerFields()) {
         return;
       }
 
@@ -421,33 +525,72 @@
 
       // New customer info
       if (newCustomer && newCustomer.checked) {
-        var shipAddr1 = trimString((document.getElementById("shipAddr1").value || ""));
-        var shipAddr2 = trimString((document.getElementById("shipAddr2").value || ""));
-        var shipCityStateZip = trimString((document.getElementById("shipCityStateZip").value || ""));
-        var shipContact = trimString((document.getElementById("shipContact").value || ""));
+        function val(id) {
+          var el = document.getElementById(id);
+          return el ? trimString(el.value || "") : "";
+        }
 
-        var billAddr1 = trimString((document.getElementById("billAddr1").value || ""));
-        var billAddr2 = trimString((document.getElementById("billAddr2").value || ""));
-        var billCityStateZip = trimString((document.getElementById("billCityStateZip").value || ""));
-        var billContact = trimString((document.getElementById("billContact").value || ""));
+        var billingSame = document.getElementById("billingSameAsShipping");
+
+        // Shipping
+        var shipAddr1 = val("shipAddr1");
+        var shipAddr2 = val("shipAddr2");
+        var shipCity = val("shipCity");
+        var shipState = val("shipState");
+        var shipZip = val("shipZip");
+        var shipContactName = val("shipContactName");
+        var shipContactPhone = val("shipContactPhone");
+        var shipContactEmail = val("shipContactEmail");
+
+        // Billing (if same as shipping, display same details)
+        var billAddr1, billAddr2, billCity, billState, billZip;
+        var billContactName, billContactPhone, billContactEmail;
+
+        if (billingSame && billingSame.checked) {
+          billAddr1 = shipAddr1;
+          billAddr2 = shipAddr2;
+          billCity = shipCity;
+          billState = shipState;
+          billZip = shipZip;
+          billContactName = shipContactName;
+          billContactPhone = shipContactPhone;
+          billContactEmail = shipContactEmail;
+        } else {
+          billAddr1 = val("billAddr1");
+          billAddr2 = val("billAddr2");
+          billCity = val("billCity");
+          billState = val("billState");
+          billZip = val("billZip");
+          billContactName = val("billContactName");
+          billContactPhone = val("billContactPhone");
+          billContactEmail = val("billContactEmail");
+        }
 
         var taxExempt = document.getElementById("taxExempt");
-        var county = trimString((document.getElementById("county") && document.getElementById("county").value) || "");
+        var county = val("county");
 
-        body += "New Customer Information:\n\n";
+        body += "New customer information:\n\n";
 
         body += "Shipping Address:\n";
         if (shipAddr1) body += shipAddr1 + "\n";
         if (shipAddr2) body += shipAddr2 + "\n";
-        if (shipCityStateZip) body += shipCityStateZip + "\n";
-        if (shipContact) body += "Contact: " + shipContact + "\n";
+        if (shipCity || shipState || shipZip) {
+          body += [shipCity, shipState, shipZip].filter(function (p) { return p; }).join(", ") + "\n";
+        }
+        if (shipContactName) body += "Contact Name: " + shipContactName + "\n";
+        if (shipContactPhone) body += "Contact Phone: " + shipContactPhone + "\n";
+        if (shipContactEmail) body += "Contact Email: " + shipContactEmail + "\n";
         body += "\n";
 
         body += "Billing Address:\n";
         if (billAddr1) body += billAddr1 + "\n";
         if (billAddr2) body += billAddr2 + "\n";
-        if (billCityStateZip) body += billCityStateZip + "\n";
-        if (billContact) body += "Contact (AP): " + billContact + "\n";
+        if (billCity || billState || billZip) {
+          body += [billCity, billState, billZip].filter(function (p) { return p; }).join(", ") + "\n";
+        }
+        if (billContactName) body += "Contact Name (AP): " + billContactName + "\n";
+        if (billContactPhone) body += "Contact Phone (AP): " + billContactPhone + "\n";
+        if (billContactEmail) body += "Contact Email (AP): " + billContactEmail + "\n";
         body += "\n";
 
         body += "Tax Exempt Status: " + (taxExempt && taxExempt.checked ? "Tax Exempt" : "Taxable") + "\n";
@@ -461,7 +604,7 @@
 
       var mailto = "mailto:" + encodeURIComponent(WAREHOUSE_EMAIL)
         + "?subject=" + encodeURIComponent(subject)
-        + "&body=" + "=" + encodeURIComponent(body);
+        + "&body=" + encodeURIComponent(body);
 
       window.location.href = mailto;
     }
@@ -475,9 +618,7 @@
     function loadItemsAndInit() {
       if (typeof fetch === "function") {
         fetch("items.json")
-          .then(function (response) {
-            return response.json();
-          })
+          .then(function (response) { return response.json(); })
           .then(function (data) {
             if (Object.prototype.toString.call(data) === "[object Array]") {
               ITEMS = data;
@@ -493,7 +634,6 @@
             initPage();
           });
       } else {
-        // Fallback if fetch doesn't exist
         ITEMS = [];
         initPage();
       }
