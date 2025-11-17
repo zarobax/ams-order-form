@@ -212,12 +212,12 @@
     <h2 style="font-size:1.1rem;margin-top:0;">Items</h2>
     <p class="note">Check the items being ordered and enter quantities.</p>
 
-    <!-- NEW: Search bar -->
+    <!-- Search bar -->
     <label for="itemSearch">Search items</label>
     <input
       id="itemSearch"
       type="text"
-      placeholder='Type to filter by name or UOM (e.g. "Super", "C12A")'
+      placeholder='Type to filter by name or UOM'
       style="margin-bottom:0.6rem;"
     />
 
@@ -250,6 +250,7 @@
     // =======================
 
     // Items will be loaded from items.json
+    // Each item can be: { "name": "...", "uom": "...", "code": "..." }
     var ITEMS = [];
 
     function trimString(str) {
@@ -329,7 +330,7 @@
       }
     }
 
-    // NEW: search setup – hides/shows rows without changing IDs / selections
+    // Search: hides/shows rows without changing IDs / selections
     function setupItemSearch() {
       var searchInput = document.getElementById("itemSearch");
       if (!searchInput) return;
@@ -352,7 +353,10 @@
 
           if (!term) {
             row.style.display = "";
-          } else if (nameText.indexOf(term) !== -1 || uomText.indexOf(term) !== -1) {
+          } else if (
+            nameText.indexOf(term) !== -1 ||
+            uomText.indexOf(term) !== -1
+          ) {
             row.style.display = "";
           } else {
             row.style.display = "none";
@@ -539,8 +543,13 @@
             invalid = true;
           } else {
             var displayName = cleanName(ITEMS[i].name, ITEMS[i].uom);
-            lines.push("- " + qty + " x " + displayName +
-                       " (UOM: " + (ITEMS[i].uom || "") + ")");
+            var uomText = ITEMS[i].uom || "";
+            var codeText = ITEMS[i].code || "";
+            var line = "- " + qty + " x " + displayName + " (" + uomText + ")";
+            if (codeText) {
+              line += " / " + codeText;
+            }
+            lines.push(line);
           }
         }
       }
@@ -653,7 +662,7 @@
 
     function initPage() {
       buildItemsTable();
-      setupItemSearch();        // <-- hook up search
+      setupItemSearch();
       setupNewCustomerSection();
     }
 
