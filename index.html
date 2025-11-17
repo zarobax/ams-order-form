@@ -211,6 +211,16 @@
   <div class="card">
     <h2 style="font-size:1.1rem;margin-top:0;">Items</h2>
     <p class="note">Check the items being ordered and enter quantities.</p>
+
+    <!-- NEW: Search bar -->
+    <label for="itemSearch">Search items</label>
+    <input
+      id="itemSearch"
+      type="text"
+      placeholder='Type to filter by name or UOM (e.g. "Super", "C12A")'
+      style="margin-bottom:0.6rem;"
+    />
+
     <table>
       <thead>
         <tr>
@@ -317,6 +327,38 @@
           }
         };
       }
+    }
+
+    // NEW: search setup – hides/shows rows without changing IDs / selections
+    function setupItemSearch() {
+      var searchInput = document.getElementById("itemSearch");
+      if (!searchInput) return;
+
+      searchInput.addEventListener("input", function () {
+        var term = trimString(this.value).toLowerCase();
+        var tbody = document.getElementById("itemsTableBody");
+        if (!tbody) return;
+
+        var rows = tbody.getElementsByTagName("tr");
+        for (var i = 0; i < rows.length; i++) {
+          var row = rows[i];
+          // columns: 1 = name, 2 = UOM
+          var nameCell = row.cells[1];
+          var uomCell = row.cells[2];
+          if (!nameCell || !uomCell) continue;
+
+          var nameText = nameCell.textContent.toLowerCase();
+          var uomText = (uomCell.textContent || "").toLowerCase();
+
+          if (!term) {
+            row.style.display = "";
+          } else if (nameText.indexOf(term) !== -1 || uomText.indexOf(term) !== -1) {
+            row.style.display = "";
+          } else {
+            row.style.display = "none";
+          }
+        }
+      });
     }
 
     function setupNewCustomerSection() {
@@ -611,6 +653,7 @@
 
     function initPage() {
       buildItemsTable();
+      setupItemSearch();        // <-- hook up search
       setupNewCustomerSection();
     }
 
