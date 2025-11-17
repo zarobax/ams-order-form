@@ -94,6 +94,29 @@
       font-size: 0.8rem;
       color: #666;
     }
+    .inline-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-top: 0.6rem;
+      margin-bottom: 0.3rem;
+      font-size: 0.9rem;
+    }
+    .two-column {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+    @media (min-width: 600px) {
+      .two-column {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    .subheading {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin: 0.4rem 0 0.2rem 0;
+    }
   </style>
 </head>
 <body>
@@ -106,6 +129,62 @@
 
     <label for="shipTo" style="margin-top:0.6rem;">Ship To / Notes (optional)</label>
     <textarea id="shipTo" placeholder="Address, special instructions, etc."></textarea>
+
+    <!-- New customer checkbox -->
+    <div class="inline-checkbox">
+      <input type="checkbox" id="newCustomer" />
+      <label for="newCustomer" style="margin:0;">New customer</label>
+    </div>
+
+    <!-- New customer details (hidden until checked) -->
+    <div id="newCustomerDetails" style="display:none; margin-top:0.75rem;">
+      <div class="two-column">
+        <!-- Shipping Address -->
+        <div>
+          <div class="subheading">Shipping Address</div>
+          <label for="shipAddr1">Address Line 1</label>
+          <input type="text" id="shipAddr1" />
+          <label for="shipAddr2">Address Line 2</label>
+          <input type="text" id="shipAddr2" />
+          <label for="shipCityStateZip">City, State, Zip</label>
+          <input type="text" id="shipCityStateZip" />
+          <label for="shipContact">Contact info</label>
+          <input type="text" id="shipContact" />
+        </div>
+
+        <!-- Billing Address -->
+        <div>
+          <div class="subheading">Billing Address</div>
+
+          <div class="inline-checkbox" style="margin-top:0;">
+            <input type="checkbox" id="billingSameAsShipping" />
+            <label for="billingSameAsShipping" style="margin:0;">Billing same as shipping</label>
+          </div>
+
+          <label for="billAddr1">Address Line 1</label>
+          <input type="text" id="billAddr1" />
+          <label for="billAddr2">Address Line 2</label>
+          <input type="text" id="billAddr2" />
+          <label for="billCityStateZip">City, State, Zip</label>
+          <input type="text" id="billCityStateZip" />
+          <label for="billContact">Contact Info (for AP)</label>
+          <input type="text" id="billContact" />
+        </div>
+      </div>
+
+      <!-- Tax / County -->
+      <div style="margin-top:0.75rem;">
+        <div class="inline-checkbox">
+          <input type="checkbox" id="taxExempt" />
+          <label for="taxExempt" style="margin:0;">Customer is tax exempt</label>
+        </div>
+
+        <div id="countyRow" style="margin-top:0.4rem;">
+          <label for="county">County (only if not tax exempt)</label>
+          <input type="text" id="county" />
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="card">
@@ -135,86 +214,17 @@
 
   <script>
     // === CONFIGURE THESE ===
-    var WAREHOUSE_EMAIL = "amssupply@outlook.com";  // <- change this
+    var WAREHOUSE_EMAIL = "amssupply@outlook.com";
     var COMPANY_NAME = "AMS Supply";
     // =======================
 
-    // Item list (same as before)
-    var ITEMS = [
-      { name: 'Full Throttle "Wicked Good"', uom: 'C12A' },
-      { name: 'Undercoat "Wicked Good"', uom: 'C12A' },
-      { name: 'Dyn-O-Myte "Wicked Good"', uom: 'C4G' },
-      { name: 'Dyn-O-Myte "Wicked Good"', uom: 'P5G' },
-      { name: 'Dyn-O-Myte "Wicked Good"', uom: 'K15G' },
-      { name: 'Dyn-O-Myte "Wicked Good"', uom: 'D55G' },
-      { name: 'Dyn-O-Myte "Wicked Good"', uom: 'T275G' },
-      { name: 'Convoy "Wicked Good"', uom: 'P42#' },
-      { name: 'Convoy "Wicked Good"', uom: 'D380#' },
-      { name: 'Rad 1 "Wicked Good"', uom: 'C12A' },
-      { name: 'Rad-1 "Wicked Good"', uom: 'P5G' },
-      { name: 'Attack "Wicked Good"', uom: 'P45#' },
-      { name: 'Attack "Wicked Good"', uom: 'D300#' },
-      { name: 'Wipe Out "Wicked Good"', uom: 'C12Q' },
-      { name: 'Wipe Out "Wicked Good"', uom: 'D55G' },
-      { name: 'Gleam "Wicked Good"', uom: 'C12A' },
-      { name: 'Clear View "Wicked Good"', uom: 'C12A' },
-      { name: 'Streak Free "Wicked Good"', uom: 'C12Q' },
-      { name: 'Wicked Good Hand Cleaner 3.55 L', uom: 'C4TB' },
-      { name: 'Wicked Good Hand Cleaner', uom: 'C4FTG' },
-      { name: 'X-Wipes "Wicked Good"', uom: 'C6TB' },
-      { name: 'Bee Bopper II Wasp & Hornet Spray (C12A)', uom: 'C12A' },
-      { name: 'Super-Blast "Wicked Good"', uom: 'C4G' },
-      { name: 'Super-Blast "Wicked Good"', uom: 'P5G' },
-      { name: 'Super-Blast "Wicked Good"', uom: 'D55G' },
-      { name: 'Super M "Wicked Good"', uom: 'C4G' },
-      { name: 'Super M "Wicked Good"', uom: 'P5G' },
-      { name: 'Super M "Wicked Good"', uom: 'D55G' },
-      { name: 'Sonic Boom "Wicked Good"', uom: 'C4G' },
-      { name: 'Sonic Boom "Wicked Good"', uom: 'P5G' },
-      { name: 'Sonic Boom "Wicked Good"', uom: 'D55G' },
-      { name: 'Sonic Boom "Wicked Good"', uom: 'T275G' },
-      { name: 'Alum-Bright "Wicked Good"', uom: 'C4G' },
-      { name: 'Alum-Bright "Wicked Good"', uom: 'P5G' },
-      { name: 'Alum-Bright "Wicked Good"', uom: 'D55G' },
-      { name: 'Railroad "Wicked Good"', uom: 'C4G' },
-      { name: 'Railroad "Wicked Good"', uom: 'P5G' },
-      { name: 'Railroad "Wicked Good"', uom: 'D55G' },
-      { name: 'A-One Plus "Wicked Good"', uom: 'P5G' },
-      { name: 'Cyclone "Wicked Good"', uom: 'C12Q' },
-      { name: 'Super Bowl "Wicked Good"', uom: 'C12Q' },
-      { name: 'Oven Cleaner "Wicked Good"', uom: 'C4G' },
-      { name: 'Oven Cleaner "Wicked Good"', uom: 'P5G' },
-      { name: 'Anti-Seize "Vibra-Tite" 8 oz.', uom: 'TB' },
-      { name: 'FRP "Wicked Good"', uom: 'C12A' },
-      { name: '4-Way NF "Wicked Good" 17 oz.', uom: 'C12A' },
-      { name: '#5 "Wicked Good"', uom: 'C12A' },
-      { name: 'Ultra Lube "Wicked Good"', uom: 'C12A' },
-      { name: 'Wipe - Detail 450 BFP', uom: 'C450' },
-      { name: 'Roll Towel Red Shop Jumbo', uom: 'EA' },
-      { name: 'RTV Clear "Wicked Good"', uom: 'C6A' },
-      { name: 'RTV Black "Wicked Good"', uom: 'C6A' },
-      { name: 'RTV Red "Wicked Good"', uom: 'C6A' },
-      { name: '140 Flash Solvent "Wicked Good"', uom: 'P5G' },
-      { name: '140 Flash Solvent "Wicked Good"', uom: 'D55G' },
-      { name: 'Fast Break "Wicked Good"', uom: 'C12A' },
-      { name: 'Wicked Good Brake Cleaner', uom: 'P5G' },
-      { name: 'Wicked Good Brake Cleaner', uom: 'K16G' },
-      { name: 'Wicked Good Brake Cleaner', uom: 'D55G' },
-      { name: 'Big Block "Wicked Good"', uom: 'C12A' },
-      { name: 'Big Block "Wicked Good"', uom: 'P5G' },
-      { name: 'Big Block "Wicked Good"', uom: 'K16G' },
-      { name: 'Big Block "Wicked Good"', uom: 'D55G' },
-      { name: 'Orang-A-Tang "Wicked Good"', uom: 'C12A' },
-      { name: 'Orang-A-Tang "Wicked Good"', uom: 'P5G' },
-      { name: 'Orang-A-Tang "Wicked Good"', uom: 'D55G' },
-      { name: 'SFG-75 "Streetfyter"', uom: 'BG100' }
-    ];
+    // Items will be loaded from items.json
+    var ITEMS = [];
 
     function trimString(str) {
       return str.replace(/^\s+|\s+$/g, "");
     }
 
-    // Remove "(UOM)" from end of name when it matches the uom
     function cleanName(rawName, uom) {
       if (!rawName || !uom) return rawName || "";
       var name = rawName;
@@ -288,9 +298,81 @@
       }
     }
 
+    function setupNewCustomerSection() {
+      var newCustomer = document.getElementById("newCustomer");
+      var details = document.getElementById("newCustomerDetails");
+      var billingSame = document.getElementById("billingSameAsShipping");
+      var taxExempt = document.getElementById("taxExempt");
+      var countyRow = document.getElementById("countyRow");
+
+      function setDetailsVisibility() {
+        if (newCustomer && newCustomer.checked) {
+          details.style.display = "block";
+        } else {
+          details.style.display = "none";
+        }
+      }
+
+      function setBillingSameState() {
+        var shipAddr1 = document.getElementById("shipAddr1");
+        var shipAddr2 = document.getElementById("shipAddr2");
+        var shipCityStateZip = document.getElementById("shipCityStateZip");
+        var shipContact = document.getElementById("shipContact");
+
+        var billAddr1 = document.getElementById("billAddr1");
+        var billAddr2 = document.getElementById("billAddr2");
+        var billCityStateZip = document.getElementById("billCityStateZip");
+        var billContact = document.getElementById("billContact");
+
+        if (!billAddr1 || !billAddr2 || !billCityStateZip || !billContact) return;
+
+        if (billingSame && billingSame.checked) {
+          billAddr1.value = shipAddr1 ? shipAddr1.value : "";
+          billAddr2.value = shipAddr2 ? shipAddr2.value : "";
+          billCityStateZip.value = shipCityStateZip ? shipCityStateZip.value : "";
+          billContact.value = shipContact ? shipContact.value : "";
+
+          billAddr1.disabled = true;
+          billAddr2.disabled = true;
+          billCityStateZip.disabled = true;
+          billContact.disabled = true;
+        } else {
+          billAddr1.disabled = false;
+          billAddr2.disabled = false;
+          billCityStateZip.disabled = false;
+          billContact.disabled = false;
+        }
+      }
+
+      function setCountyVisibility() {
+        if (taxExempt && taxExempt.checked) {
+          countyRow.style.display = "none";
+          var countyInput = document.getElementById("county");
+          if (countyInput) countyInput.value = "";
+        } else {
+          countyRow.style.display = "block";
+        }
+      }
+
+      if (newCustomer) {
+        newCustomer.onchange = setDetailsVisibility;
+        setDetailsVisibility();
+      }
+
+      if (billingSame) {
+        billingSame.onchange = setBillingSameState;
+      }
+
+      if (taxExempt) {
+        taxExempt.onchange = setCountyVisibility;
+        setCountyVisibility();
+      }
+    }
+
     function generateEmail() {
       var customerName = trimString(document.getElementById("customerName").value);
       var shipTo = trimString(document.getElementById("shipTo").value);
+      var newCustomer = document.getElementById("newCustomer");
 
       if (!customerName) {
         alert("Please enter the customer name.");
@@ -300,6 +382,7 @@
       var lines = [];
       var invalid = false;
 
+      // Build item lines
       for (var i = 0; i < ITEMS.length; i++) {
         var checkbox = document.getElementById("itemCheck_" + i);
         var qtyInput = document.getElementById("itemQty_" + i);
@@ -336,20 +419,91 @@
         body += "Ship To / Notes:\n" + shipTo + "\n\n";
       }
 
-      body += "Thank you,\n";
+      // New customer info
+      if (newCustomer && newCustomer.checked) {
+        var shipAddr1 = trimString((document.getElementById("shipAddr1").value || ""));
+        var shipAddr2 = trimString((document.getElementById("shipAddr2").value || ""));
+        var shipCityStateZip = trimString((document.getElementById("shipCityStateZip").value || ""));
+        var shipContact = trimString((document.getElementById("shipContact").value || ""));
+
+        var billAddr1 = trimString((document.getElementById("billAddr1").value || ""));
+        var billAddr2 = trimString((document.getElementById("billAddr2").value || ""));
+        var billCityStateZip = trimString((document.getElementById("billCityStateZip").value || ""));
+        var billContact = trimString((document.getElementById("billContact").value || ""));
+
+        var taxExempt = document.getElementById("taxExempt");
+        var county = trimString((document.getElementById("county") && document.getElementById("county").value) || "");
+
+        body += "New customer information:\n\n";
+
+        body += "Shipping Address:\n";
+        if (shipAddr1) body += shipAddr1 + "\n";
+        if (shipAddr2) body += shipAddr2 + "\n";
+        if (shipCityStateZip) body += shipCityStateZip + "\n";
+        if (shipContact) body += "Contact: " + shipContact + "\n";
+        body += "\n";
+
+        body += "Billing Address:\n";
+        if (billAddr1) body += billAddr1 + "\n";
+        if (billAddr2) body += billAddr2 + "\n";
+        if (billCityStateZip) body += billCityStateZip + "\n";
+        if (billContact) body += "Contact (AP): " + billContact + "\n";
+        body += "\n";
+
+        body += "Tax Exempt Status: " + (taxExempt && taxExempt.checked ? "Tax Exempt" : "Taxable") + "\n";
+        if (!(taxExempt && taxExempt.checked) && county) {
+          body += "County: " + county + "\n";
+        }
+        body += "\n";
+      }
+
+      body += "Thank you,\n" + COMPANY_NAME + " Sales\n";
 
       var mailto = "mailto:" + encodeURIComponent(WAREHOUSE_EMAIL)
         + "?subject=" + encodeURIComponent(subject)
-        + "&body=" + encodeURIComponent(body);
+        + "&body=" + "=" + encodeURIComponent(body);
 
       window.location.href = mailto;
     }
 
-    // Build table when page loads
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", buildItemsTable);
-    } else {
+    function initPage() {
       buildItemsTable();
+      setupNewCustomerSection();
+    }
+
+    // Load items from items.json, THEN init
+    function loadItemsAndInit() {
+      if (typeof fetch === "function") {
+        fetch("items.json")
+          .then(function (response) {
+            return response.json();
+          })
+          .then(function (data) {
+            if (Object.prototype.toString.call(data) === "[object Array]") {
+              ITEMS = data;
+            } else {
+              console.log("items.json did not contain an array; using empty list.");
+              ITEMS = [];
+            }
+            initPage();
+          })
+          .catch(function (error) {
+            console.log("Error loading items.json:", error);
+            ITEMS = [];
+            initPage();
+          });
+      } else {
+        // Fallback if fetch doesn't exist
+        ITEMS = [];
+        initPage();
+      }
+    }
+
+    // Build UI when page loads
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", loadItemsAndInit);
+    } else {
+      loadItemsAndInit();
     }
 
     // Register service worker (for PWA)
