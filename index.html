@@ -122,6 +122,17 @@
       grid-template-columns: 1fr 1fr 1fr;
       gap: 0.5rem;
     }
+
+    /* 🔥 Sticky header for the items card */
+    .sticky-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: #ffffff;
+      padding-bottom: 0.5rem;
+      margin-bottom: 0.5rem;
+      border-bottom: 1px solid #eee;
+    }
   </style>
 </head>
 <body>
@@ -212,14 +223,21 @@
     <h2 style="font-size:1.1rem;margin-top:0;">Items</h2>
     <p class="note">Check the items being ordered and enter quantities.</p>
 
-    <!-- Search bar -->
-    <label for="itemSearch">Search items</label>
-    <input
-      id="itemSearch"
-      type="text"
-      placeholder='Type to filter by name or UOM'
-      style="margin-bottom:0.6rem;"
-    />
+    <!-- 🌟 Sticky header area -->
+    <div class="sticky-header">
+      <button class="btn" style="margin-top:0;" onclick="generateEmail()">
+        Generate Email
+      </button>
+
+      <!-- Search bar -->
+      <label for="itemSearch" style="margin-top:0.6rem;">Search items</label>
+      <input
+        id="itemSearch"
+        type="text"
+        placeholder="Type to filter by name or UOM"
+        style="margin-bottom:0.3rem;"
+      />
+    </div>
 
     <table>
       <thead>
@@ -236,12 +254,7 @@
     </table>
   </div>
 
-  <div class="card">
-    <button class="btn" onclick="generateEmail()">Generate Email</button>
-    <p class="note">
-      This will open your Mail app with the email pre-filled. You can review and send.
-    </p>
-  </div>
+  <!-- The old bottom card with button is removed -->
 
   <script>
     // === CONFIGURE THESE ===
