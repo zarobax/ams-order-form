@@ -326,9 +326,8 @@
     <table>
       <thead>
         <tr>
-          <th>Code</th>
           <th>Item</th>
-          <th>UOM</th>
+          <th>Code</th>
           <th>Price</th>
         </tr>
       </thead>
@@ -351,7 +350,7 @@
       <input
         id="itemSearch"
         type="text"
-        placeholder="Type to filter by name or UOM"
+        placeholder="Type to filter by name, code, or UOM"
         style="margin-bottom:0.3rem;"
       />
     </div>
@@ -361,13 +360,14 @@
         <tr>
           <th>✔</th>
           <th>Item</th>
+          <th>Code</th>
           <th>UOM</th>
           <th>Qty</th>
           <th>Price</th>
         </tr>
       </thead>
       <tbody id="itemsTableBody">
-        <tr><td colspan="5">If you can see this, JavaScript did not run.</td></tr>
+        <tr><td colspan="6">If you can see this, JavaScript did not run.</td></tr>
       </tbody>
     </table>
   </div>
@@ -386,7 +386,7 @@
           <tr>
             <th>Customer</th>
             <th style="width:70px;">Items</th>
-            <th style="width:120px;">Actions</th>
+            <th style="width:140px;">Actions</th>
           </tr>
         </thead>
         <tbody id="manageCustomersBody">
@@ -400,9 +400,8 @@
         <table class="manage-table">
           <thead>
             <tr>
-              <th>Code</th>
               <th>Item</th>
-              <th>UOM</th>
+              <th>Code</th>
               <th>Price</th>
               <th style="width:70px;">Remove</th>
             </tr>
@@ -452,7 +451,7 @@
     // CUSTOMER_QUOTES = {
     //   normalizedName: {
     //     displayName: "ABC Trucking",
-    //     items: { code: { name,uom,code,price } }
+    //     items: { codeKey: { name,uom,code,price } }
     //   }
     // }
     var CUSTOMER_QUOTES = {};
@@ -533,6 +532,10 @@
         var nameCell = document.createElement("td");
         nameCell.textContent = cleanName(item.name, item.uom);
 
+        // Code
+        var codeCell = document.createElement("td");
+        codeCell.textContent = item.code || "";
+
         // UOM
         var uomCell = document.createElement("td");
         uomCell.textContent = item.uom || "";
@@ -559,6 +562,7 @@
 
         row.appendChild(checkCell);
         row.appendChild(nameCell);
+        row.appendChild(codeCell);
         row.appendChild(uomCell);
         row.appendChild(qtyCell);
         row.appendChild(priceCell);
@@ -601,18 +605,21 @@
         var rows = tbody.getElementsByTagName("tr");
         for (var i = 0; i < rows.length; i++) {
           var row = rows[i];
-          // columns: 1 = name, 2 = UOM
+          // columns: 1 = name, 2 = code, 3 = UOM
           var nameCell = row.cells[1];
-          var uomCell = row.cells[2];
+          var codeCell = row.cells[2];
+          var uomCell = row.cells[3];
           if (!nameCell || !uomCell) continue;
 
           var nameText = nameCell.textContent.toLowerCase();
+          var codeText = (codeCell.textContent || "").toLowerCase();
           var uomText = (uomCell.textContent || "").toLowerCase();
 
           if (!term) {
             row.style.display = "";
           } else if (
             nameText.indexOf(term) !== -1 ||
+            codeText.indexOf(term) !== -1 ||
             uomText.indexOf(term) !== -1
           ) {
             row.style.display = "";
@@ -813,7 +820,7 @@
       if (codes.length === 0) {
         var row = document.createElement("tr");
         var cell = document.createElement("td");
-        cell.colSpan = 4;
+        cell.colSpan = 3;
         cell.textContent = "No items in this customer's master quote yet.";
         row.appendChild(cell);
         tbody.appendChild(row);
@@ -821,16 +828,16 @@
       }
 
       for (var i = 0; i < codes.length; i++) {
-        var code = codes[i];
-        var entry = cust.items[code];
+        var key = codes[i];
+        var entry = cust.items[key];
         var row = document.createElement("tr");
 
-        var codeCell = document.createElement("td");
-        codeCell.textContent = entry.code || code || "";
         var nameCell = document.createElement("td");
         nameCell.textContent = entry.name || "";
-        var uomCell = document.createElement("td");
-        uomCell.textContent = entry.uom || "";
+
+        var codeCell = document.createElement("td");
+        codeCell.textContent = entry.code || key || "";
+
         var priceCell = document.createElement("td");
         if (typeof entry.price === "number") {
           priceCell.textContent = "$" + entry.price.toFixed(2);
@@ -838,9 +845,8 @@
           priceCell.textContent = "-";
         }
 
-        row.appendChild(codeCell);
         row.appendChild(nameCell);
-        row.appendChild(uomCell);
+        row.appendChild(codeCell);
         row.appendChild(priceCell);
         tbody.appendChild(row);
       }
@@ -1144,29 +1150,28 @@
       if (codes.length === 0) {
         var row = document.createElement("tr");
         var cell = document.createElement("td");
-        cell.colSpan = 5;
+        cell.colSpan = 4;
         cell.textContent = "No items in this master quote yet.";
         row.appendChild(cell);
         tbody.appendChild(row);
       } else {
-        codes.forEach(function(code) {
-          var entry = items[code];
+        codes.forEach(function(codeKey) {
+          var entry = items[codeKey];
           var row = document.createElement("tr");
 
-          // Code
-          var codeCell = document.createElement("td");
-          codeCell.textContent = entry.code || code || "";
-          row.appendChild(codeCell);
+          // Store key & uom on the row (not editable)
+          row.dataset.itemKey = codeKey;
+          row.dataset.uom = entry.uom || "";
 
-          // Item name (read-only text)
+          // Item name
           var nameCell = document.createElement("td");
           nameCell.textContent = entry.name || "";
           row.appendChild(nameCell);
 
-          // UOM (read-only)
-          var uomCell = document.createElement("td");
-          uomCell.textContent = entry.uom || "";
-          row.appendChild(uomCell);
+          // Code
+          var codeCell = document.createElement("td");
+          codeCell.textContent = entry.code || codeKey || "";
+          row.appendChild(codeCell);
 
           // Price (editable)
           var priceCell = document.createElement("td");
@@ -1225,21 +1230,24 @@
       var rows = tbody.getElementsByTagName("tr");
       var newItems = {};
       for (var i = 0; i < rows.length; i++) {
-        var cells = rows[i].cells;
-        if (!cells || cells.length < 4) continue;
+        var row = rows[i];
+        var cells = row.cells;
+        if (!cells || cells.length < 3) continue;
 
-        var codeText = trimString(cells[0].textContent || "");
-        var nameText = trimString(cells[1].textContent || "");
-        var uomText  = trimString(cells[2].textContent || "");
-        var priceInput = cells[3].querySelector("input[type=number]");
+        var nameText = trimString(cells[0].textContent || "");
+        var codeText = trimString(cells[1].textContent || "");
+        var priceInput = cells[2].querySelector("input[type=number]");
         var priceRaw = priceInput ? trimString(priceInput.value || "") : "";
         var priceNum = priceRaw ? Number(priceRaw) : NaN;
 
-        // Skip rows that have no code and no name (likely "no items" message)
-        if (!codeText && !nameText) continue;
+        // Skip placeholder rows
+        if (!nameText && !codeText) continue;
 
-        var itemCode = codeText || ("NO-CODE-" + nameText);
-        newItems[itemCode] = {
+        var rowKey = row.dataset.itemKey || "";
+        var uomText = row.dataset.uom || "";
+
+        var itemCodeKey = rowKey || (codeText || ("NO-CODE-" + nameText));
+        newItems[itemCodeKey] = {
           name: nameText,
           uom: uomText,
           code: codeText,
