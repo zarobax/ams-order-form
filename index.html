@@ -226,6 +226,15 @@
     #editCustomerSection input[type="number"] {
       width: 80px;
     }
+
+    /* Divider row between purchased items and other items */
+    .items-divider-row td {
+      font-size: 0.75rem;
+      text-align: center;
+      font-style: italic;
+      background: #eef3ff;
+      color: #555;
+    }
   </style>
 </head>
 <body>
@@ -514,6 +523,7 @@
     // Build items table, sorted:
     //  - items in customer.items first (if customer provided)
     //  - within each group, sorted by code alphabetically
+    //  - with a visual divider between "previously purchased" and "all other" items
     function buildItemsTable(customer) {
       var tbody = document.getElementById("itemsTableBody");
       if (!tbody) return;
@@ -536,12 +546,15 @@
         var inQuoteA = !!(quoteMap && ia.code && quoteMap[ia.code]);
         var inQuoteB = !!(quoteMap && ib.code && quoteMap[ib.code]);
 
+        // Quoted items first
         if (inQuoteA && !inQuoteB) return -1;
         if (!inQuoteA && inQuoteB) return 1;
 
+        // Then by code
         if (codeA < codeB) return -1;
         if (codeA > codeB) return 1;
 
+        // Fallback: name
         var nameA = (ia.name || "").toLowerCase();
         var nameB = (ib.name || "").toLowerCase();
         if (nameA < nameB) return -1;
@@ -549,9 +562,30 @@
         return 0;
       });
 
+      var seenQuoted = false;
+      var dividerInserted = false;
+
       for (var idx = 0; idx < indices.length; idx++) {
         var i = indices[idx];
         var item = ITEMS[i];
+
+        var inQuote = !!(quoteMap && item.code && quoteMap[item.code]);
+
+        // Once we go from "has quote" → "no quote", drop a divider row (only once)
+        if (!inQuote && seenQuoted && !dividerInserted) {
+          var divRow = document.createElement("tr");
+          divRow.className = "items-divider-row";
+          var divCell = document.createElement("td");
+          divCell.colSpan = 6;
+          divCell.textContent = "Other items";
+          divRow.appendChild(divCell);
+          tbody.appendChild(divRow);
+          dividerInserted = true;
+        }
+
+        if (inQuote) {
+          seenQuoted = true;
+        }
 
         var row = document.createElement("tr");
 
@@ -643,6 +677,13 @@
         var rows = tbody.getElementsByTagName("tr");
         for (var i = 0; i < rows.length; i++) {
           var row = rows[i];
+
+          // Skip divider rows from filtering logic
+          if (row.classList && row.classList.contains("items-divider-row")) {
+            row.style.display = term ? "none" : "";
+            continue;
+          }
+
           // columns: 1 = name, 2 = code, 3 = UOM
           var nameCell = row.cells[1];
           var codeCell = row.cells[2];
@@ -1574,4 +1615,3 @@
 
 </body>
 </html>
-
