@@ -850,14 +850,18 @@
         var div = document.createElement("div");
         div.className = "customer-suggestion";
         div.textContent = name;
-        div.onclick = function() {
+
+        // Use mousedown so it fires before input loses focus
+        div.addEventListener("mousedown", function (e) {
+          e.preventDefault();
           var input = document.getElementById("customerName");
           if (input) {
             input.value = name;
           }
           box.style.display = "none";
           onCustomerNameChange();
-        };
+        });
+
         box.appendChild(div);
       });
 
@@ -904,8 +908,10 @@
       var input = document.getElementById("customerName");
       if (!input) return;
 
+      // When user finishes editing and hits "Done"/Enter
       input.addEventListener("change", onCustomerNameChange);
-      input.addEventListener("blur", onCustomerNameChange);
+
+      // While typing, just update suggestions
       input.addEventListener("input", function () {
         updateCustomerSuggestions(this.value);
       });
