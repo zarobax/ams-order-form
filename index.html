@@ -511,11 +511,46 @@
       return trimString(name);
     }
 
-    function buildItemsTable() {
+    // Build items table, sorted:
+    //  - items in customer.items first (if customer provided)
+    //  - within each group, sorted by code alphabetically
+    function buildItemsTable(customer) {
       var tbody = document.getElementById("itemsTableBody");
+      if (!tbody) return;
       tbody.innerHTML = "";
 
+      var indices = [];
       for (var i = 0; i < ITEMS.length; i++) {
+        indices.push(i);
+      }
+
+      var quoteMap = (customer && customer.items) ? customer.items : null;
+
+      indices.sort(function(a, b) {
+        var ia = ITEMS[a] || {};
+        var ib = ITEMS[b] || {};
+
+        var codeA = (ia.code || "").toUpperCase();
+        var codeB = (ib.code || "").toUpperCase();
+
+        var inQuoteA = !!(quoteMap && ia.code && quoteMap[ia.code]);
+        var inQuoteB = !!(quoteMap && ib.code && quoteMap[ib.code]);
+
+        if (inQuoteA && !inQuoteB) return -1;
+        if (!inQuoteA && inQuoteB) return 1;
+
+        if (codeA < codeB) return -1;
+        if (codeA > codeB) return 1;
+
+        var nameA = (ia.name || "").toLowerCase();
+        var nameB = (ib.name || "").toLowerCase();
+        if (nameA < nameB) return -1;
+        if (nameA > nameB) return 1;
+        return 0;
+      });
+
+      for (var idx = 0; idx < indices.length; idx++) {
+        var i = indices[idx];
         var item = ITEMS[i];
 
         var row = document.createElement("tr");
@@ -586,8 +621,11 @@
         };
       }
 
-      // If a customer is already selected and has a quote, apply prices
-      if (CURRENT_CUSTOMER_KEY && CUSTOMER_QUOTES[CURRENT_CUSTOMER_KEY]) {
+      // If a customer is provided, apply its stored prices;
+      // otherwise, fall back to the current global selection.
+      if (customer && customer.items) {
+        applyMasterQuoteToTable(customer);
+      } else if (CURRENT_CUSTOMER_KEY && CUSTOMER_QUOTES[CURRENT_CUSTOMER_KEY]) {
         applyMasterQuoteToTable(CUSTOMER_QUOTES[CURRENT_CUSTOMER_KEY]);
       }
     }
@@ -928,6 +966,8 @@
       if (!rawName) {
         CURRENT_CUSTOMER_KEY = null;
         if (card) card.style.display = "none";
+        // keep items in generic code-sorted order
+        buildItemsTable(null);
         return;
       }
 
@@ -936,17 +976,21 @@
 
       var existing = CUSTOMER_QUOTES[key];
       if (!existing) {
-        // New customer record shell (no address info is stored)
+        // New customer record shell (no stored items yet)
         existing = {
           displayName: rawName,
           items: {}
         };
         CUSTOMER_QUOTES[key] = existing;
         safeSaveCustomerQuotes();
+
+        // Sort items by code only (no prior purchases)
+        buildItemsTable(existing);
         renderMasterQuote(null);
       } else {
+        // Rebuild items with purchased items at top, then render master quote
+        buildItemsTable(existing);
         renderMasterQuote(existing);
-        applyMasterQuoteToTable(existing);
       }
     }
 
@@ -1023,6 +1067,7 @@
           } else {
             var card = document.getElementById("masterQuoteCard");
             if (card) card.style.display = "none";
+            buildItemsTable(null);
           }
         } catch (err) {
           console.log("Import error:", err);
@@ -1114,6 +1159,7 @@
               CURRENT_CUSTOMER_KEY = null;
               var card = document.getElementById("masterQuoteCard");
               if (card) card.style.display = "none";
+              buildItemsTable(null);
             }
             if (EDITING_CUSTOMER_KEY === key) {
               hideEditCustomerSection();
@@ -1263,7 +1309,7 @@
       buildManageCustomersTable();
       if (CURRENT_CUSTOMER_KEY === key) {
         renderMasterQuote(cust);
-        applyMasterQuoteToTable(cust);
+        buildItemsTable(cust);
       }
 
       hideEditCustomerSection();
@@ -1367,10 +1413,11 @@
         return;
       }
 
-      // Save updated quotes & refresh master quote display
+      // Save updated quotes & refresh master quote display and sorted list
       CUSTOMER_QUOTES[key] = custQuote;
       safeSaveCustomerQuotes();
       renderMasterQuote(custQuote);
+      buildItemsTable(custQuote);
 
       var subject = "Order for " + customerName;
 
@@ -1470,7 +1517,8 @@
     }
 
     function initPage() {
-      buildItemsTable();
+      // Initially, no customer → just code-sorted list
+      buildItemsTable(null);
       setupItemSearch();
       setupNewCustomerSection();
       setupCustomerNameWatcher();
@@ -1526,3 +1574,4 @@
 
 </body>
 </html>
+
