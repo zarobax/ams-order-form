@@ -163,6 +163,57 @@
     .customer-suggestion:hover {
       background: #f5f5f7;
     }
+
+    /* Small / link-style button */
+    .small-btn {
+      display: inline-block;
+      padding: 0.35rem 0.7rem;
+      font-size: 0.8rem;
+      border-radius: 999px;
+      border: 1px solid #ccc;
+      background: #f8f8f8;
+      color: #333;
+      cursor: pointer;
+    }
+    .small-btn:active {
+      opacity: 0.8;
+    }
+
+    /* Manage customers overlay */
+    #manageCustomersOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.2);
+      display: none; /* flex when open */
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+    }
+    #manageCustomersPanel {
+      max-width: 480px;
+      width: 94%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .manage-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+    }
+    .manage-table th,
+    .manage-table td {
+      padding: 0.35rem 0.4rem;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+    .manage-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      flex-wrap: wrap;
+    }
   </style>
 </head>
 <body>
@@ -174,16 +225,22 @@
     <input id="customerName" type="text" placeholder="e.g. ABC Trucking" />
     <div id="customerSuggestions"></div>
 
+    <div style="margin-top:0.3rem;">
+      <button type="button" class="small-btn" onclick="openManageCustomers()">
+        Manage customers
+      </button>
+    </div>
+
     <label for="shipTo" style="margin-top:0.6rem;">Ship To / Notes (optional)</label>
     <textarea id="shipTo" placeholder="Address, special instructions, etc."></textarea>
 
     <!-- New customer checkbox -->
     <div class="inline-checkbox">
       <input type="checkbox" id="newCustomer" />
-      <label for="newCustomer" style="margin:0;">New customer / Edit customer details</label>
+      <label for="newCustomer" style="margin:0;">Include account details (new customer)</label>
     </div>
 
-    <!-- New customer / customer details (hidden until checked) -->
+    <!-- Customer details (for warehouse email only; not saved) -->
     <div id="newCustomerDetails" style="display:none; margin-top:0.75rem;">
       <div class="two-column">
         <!-- Shipping Address -->
@@ -267,21 +324,6 @@
     </table>
   </div>
 
-  <!-- Customer data management: import/export -->
-  <div class="card">
-    <h2 style="font-size:1.1rem;margin-top:0;">Customer Data</h2>
-    <p class="note">
-      Export or import all saved customer info and pricing. Use this to move data to a new device or keep backups.
-    </p>
-    <button class="btn" type="button" onclick="exportCustomerData()">
-      Export Customer Data
-    </button>
-    <button class="btn" type="button" style="margin-top:0.5rem;" onclick="document.getElementById('importFile').click();">
-      Import Customer Data
-    </button>
-    <input type="file" id="importFile" accept="application/json,.json" style="display:none;">
-  </div>
-
   <div class="card">
     <h2 style="font-size:1.1rem;margin-top:0;">Items</h2>
     <p class="note">Check the items being ordered and enter quantities.</p>
@@ -318,11 +360,49 @@
     </table>
   </div>
 
+  <!-- Manage customers overlay -->
+  <div id="manageCustomersOverlay">
+    <div class="card" id="manageCustomersPanel">
+      <h2 style="font-size:1.1rem;margin-top:0;">Manage customers</h2>
+      <p class="note">
+        View or remove saved customers and their master quotes. To update pricing,
+        select a customer on the main screen and adjust prices there; changes save
+        when you generate an order.
+      </p>
+      <table class="manage-table">
+        <thead>
+          <tr>
+            <th>Customer</th>
+            <th style="width:70px;">Items</th>
+            <th style="width:90px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="manageCustomersBody">
+          <!-- filled by JS -->
+        </tbody>
+      </table>
+
+      <div class="manage-actions">
+        <button type="button" class="small-btn" onclick="exportCustomerData()">
+          Export
+        </button>
+        <button type="button" class="small-btn" onclick="document.getElementById('importFile').click();">
+          Import
+        </button>
+        <button type="button" class="small-btn" onclick="closeManageCustomers()">
+          Close
+        </button>
+      </div>
+
+      <input type="file" id="importFile" accept="application/json,.json" style="display:none;">
+    </div>
+  </div>
+
   <script>
     // === CONFIGURE THESE ===
     var WAREHOUSE_EMAIL = "amssupply@outlook.com";
     var COMPANY_NAME = "AMS Supply";
-    var STORAGE_KEY = "ams_customer_quotes_v1"; // now stores a wrapper object
+    var STORAGE_KEY = "ams_customer_quotes_v1"; // wrapper with .customers
     // =======================
 
     // Items loaded from items.json
@@ -333,9 +413,6 @@
     // CUSTOMER_QUOTES = {
     //   normalizedName: {
     //     displayName: "ABC Trucking",
-    //     shipping: { ... },
-    //     billing: { ... },
-    //     tax: { taxExempt: true/false, county: "" },
     //     items: { code: { name,uom,code,price } }
     //   }
     // }
@@ -597,7 +674,7 @@
         setCountyVisibility();
       }
 
-      // expose helpers so we can reuse with loaded data
+      // expose helpers for potential reuse
       window._amsSetBillingSameState = setBillingSameState;
       window._amsSetCountyVisibility = setCountyVisibility;
       window._amsSetDetailsVisibility = setDetailsVisibility;
@@ -625,7 +702,7 @@
 
       if (!shipAddr1 || !shipCity || !shipState || !shipZip ||
           !shipContactName || !shipContactPhone || !shipContactEmail) {
-        alert("Please fill in all required Shipping fields for the customer (everything with *).");
+        alert("Please fill in all required Shipping fields (everything with *).");
         return false;
       }
 
@@ -642,7 +719,7 @@
 
         if (!billAddr1 || !billCity || !billState || !billZip ||
             !billContactName || !billContactPhone || !billContactEmail) {
-          alert("Please fill in all required Billing fields for the customer (everything with *).");
+          alert("Please fill in all required Billing fields (everything with *).");
           return false;
         }
       }
@@ -652,7 +729,7 @@
       if (!(taxExempt && taxExempt.checked)) {
         // not tax exempt → county required
         if (!county) {
-          alert("Please enter County for the customer (required if not tax exempt).");
+          alert("Please enter County (required if not tax exempt).");
           return false;
         }
       }
@@ -690,7 +767,7 @@
       }
 
       card.style.display = "block";
-      note.textContent = "Saved pricing for " + (cust.displayName || "") + ". You can update prices in the main items list; changes will be saved after each order.";
+      note.textContent = "Saved pricing for " + (cust.displayName || "") + ". Adjust prices in the main items list; changes save when you generate an order.";
 
       var codes = Object.keys(cust.items || {}).sort();
       if (codes.length === 0) {
@@ -726,70 +803,6 @@
         row.appendChild(uomCell);
         row.appendChild(priceCell);
         tbody.appendChild(row);
-      }
-    }
-
-    function fillCustomerDetailsFromRecord(cust) {
-      if (!cust) return;
-
-      var ship = cust.shipping || {};
-      var bill = cust.billing || {};
-      var tax = cust.tax || {};
-
-      function setVal(id, value) {
-        var el = document.getElementById(id);
-        if (el) el.value = value || "";
-      }
-
-      // Shipping
-      setVal("shipAddr1", ship.addr1);
-      setVal("shipAddr2", ship.addr2);
-      setVal("shipCity", ship.city);
-      setVal("shipState", ship.state);
-      setVal("shipZip", ship.zip);
-      setVal("shipContactName", ship.contactName);
-      setVal("shipContactPhone", ship.contactPhone);
-      setVal("shipContactEmail", ship.contactEmail);
-
-      // Billing
-      setVal("billAddr1", bill.addr1);
-      setVal("billAddr2", bill.addr2);
-      setVal("billCity", bill.city);
-      setVal("billState", bill.state);
-      setVal("billZip", bill.zip);
-      setVal("billContactName", bill.contactName);
-      setVal("billContactPhone", bill.contactPhone);
-      setVal("billContactEmail", bill.contactEmail);
-
-      // Tax
-      var taxExempt = document.getElementById("taxExempt");
-      var countyInput = document.getElementById("county");
-      var countyRow = document.getElementById("countyRow");
-      if (taxExempt) {
-        taxExempt.checked = !!tax.taxExempt;
-      }
-      if (countyInput) {
-        countyInput.value = tax.county || "";
-      }
-      if (countyRow) {
-        if (taxExempt && taxExempt.checked) {
-          countyRow.style.display = "none";
-        } else {
-          countyRow.style.display = "block";
-        }
-      }
-
-      // Make details section visible for existing customers with data
-      var newCustomer = document.getElementById("newCustomer");
-      var details = document.getElementById("newCustomerDetails");
-      if (newCustomer && details) {
-        newCustomer.checked = true;
-        details.style.display = "block";
-      }
-
-      // Re-evaluate billing lock state if "same as shipping" is checked
-      if (window._amsSetBillingSameState) {
-        window._amsSetBillingSameState();
       }
     }
 
@@ -873,11 +886,10 @@
 
       var existing = CUSTOMER_QUOTES[key];
       if (!existing) {
-        // New customer record shell
+        // New customer record shell (no address info is stored)
         existing = {
           displayName: rawName,
           items: {}
-          // shipping/billing/tax will be added when you save
         };
         CUSTOMER_QUOTES[key] = existing;
         safeSaveCustomerQuotes();
@@ -885,7 +897,6 @@
       } else {
         renderMasterQuote(existing);
         applyMasterQuoteToTable(existing);
-        fillCustomerDetailsFromRecord(existing);
       }
     }
 
@@ -952,7 +963,8 @@
           safeSaveCustomerQuotes();
           alert("Customer data imported successfully.");
 
-          // Refresh UI for current customer if any
+          // Refresh manage panel & main UI
+          buildManageCustomersTable();
           var nameInput = document.getElementById("customerName");
           if (nameInput && trimString(nameInput.value)) {
             onCustomerNameChange();
@@ -970,17 +982,89 @@
       reader.readAsText(file);
     }
 
+    function openManageCustomers() {
+      var overlay = document.getElementById("manageCustomersOverlay");
+      if (!overlay) return;
+      buildManageCustomersTable();
+      overlay.style.display = "flex";
+    }
+
+    function closeManageCustomers() {
+      var overlay = document.getElementById("manageCustomersOverlay");
+      if (!overlay) return;
+      overlay.style.display = "none";
+    }
+
+    function buildManageCustomersTable() {
+      var tbody = document.getElementById("manageCustomersBody");
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      var keys = Object.keys(CUSTOMER_QUOTES).sort(function(a,b) {
+        var an = (CUSTOMER_QUOTES[a].displayName || "").toLowerCase();
+        var bn = (CUSTOMER_QUOTES[b].displayName || "").toLowerCase();
+        if (an < bn) return -1;
+        if (an > bn) return 1;
+        return 0;
+      });
+
+      if (keys.length === 0) {
+        var row = document.createElement("tr");
+        var cell = document.createElement("td");
+        cell.colSpan = 3;
+        cell.textContent = "No customers saved yet.";
+        row.appendChild(cell);
+        tbody.appendChild(row);
+        return;
+      }
+
+      keys.forEach(function(key) {
+        var cust = CUSTOMER_QUOTES[key];
+        var row = document.createElement("tr");
+
+        var nameCell = document.createElement("td");
+        nameCell.textContent = cust.displayName || key;
+
+        var itemsCount = cust.items ? Object.keys(cust.items).length : 0;
+        var countCell = document.createElement("td");
+        countCell.textContent = itemsCount;
+
+        var actionsCell = document.createElement("td");
+        var delBtn = document.createElement("button");
+        delBtn.type = "button";
+        delBtn.className = "small-btn";
+        delBtn.textContent = "Delete";
+        delBtn.onclick = function() {
+          if (confirm("Delete customer \"" + (cust.displayName || key) + "\" and all stored pricing?")) {
+            delete CUSTOMER_QUOTES[key];
+            safeSaveCustomerQuotes();
+            buildManageCustomersTable();
+            if (CURRENT_CUSTOMER_KEY === key) {
+              CURRENT_CUSTOMER_KEY = null;
+              var card = document.getElementById("masterQuoteCard");
+              if (card) card.style.display = "none";
+            }
+          }
+        };
+        actionsCell.appendChild(delBtn);
+
+        row.appendChild(nameCell);
+        row.appendChild(countCell);
+        row.appendChild(actionsCell);
+        tbody.appendChild(row);
+      });
+    }
+
     function generateEmail() {
       var customerName = trimString(document.getElementById("customerName").value);
       var shipTo = trimString(document.getElementById("shipTo").value);
-      var newCustomer = document.getElementById("newCustomer");
 
       if (!customerName) {
         alert("Please enter the customer name.");
         return;
       }
 
-      // Validate customer detail fields if you want to include/edit them
+      // Validate account detail fields if user chose to include them
       if (!validateNewCustomerFields()) {
         return;
       }
@@ -1068,83 +1152,7 @@
         return;
       }
 
-      // Save / update customer shipping, billing, tax if the section is used
-      var newCustomerBox = document.getElementById("newCustomer");
-      if (newCustomerBox && newCustomerBox.checked) {
-        function val(id) {
-          var el = document.getElementById(id);
-          return el ? trimString(el.value || "") : "";
-        }
-
-        var billingSame = document.getElementById("billingSameAsShipping");
-
-        // Shipping
-        var shipAddr1 = val("shipAddr1");
-        var shipAddr2 = val("shipAddr2");
-        var shipCity = val("shipCity");
-        var shipState = val("shipState");
-        var shipZip = val("shipZip");
-        var shipContactName = val("shipContactName");
-        var shipContactPhone = val("shipContactPhone");
-        var shipContactEmail = val("shipContactEmail");
-
-        // Billing (if same as shipping, use same details)
-        var billAddr1, billAddr2, billCity, billState, billZip;
-        var billContactName, billContactPhone, billContactEmail;
-
-        if (billingSame && billingSame.checked) {
-          billAddr1 = shipAddr1;
-          billAddr2 = shipAddr2;
-          billCity = shipCity;
-          billState = shipState;
-          billZip = shipZip;
-          billContactName = shipContactName;
-          billContactPhone = shipContactPhone;
-          billContactEmail = shipContactEmail;
-        } else {
-          billAddr1 = val("billAddr1");
-          billAddr2 = val("billAddr2");
-          billCity = val("billCity");
-          billState = val("billState");
-          billZip = val("billZip");
-          billContactName = val("billContactName");
-          billContactPhone = val("billContactPhone");
-          billContactEmail = val("billContactEmail");
-        }
-
-        var taxExempt = document.getElementById("taxExempt");
-        var county = val("county");
-
-        // Store these in the customer record
-        custQuote.shipping = {
-          addr1: shipAddr1,
-          addr2: shipAddr2,
-          city: shipCity,
-          state: shipState,
-          zip: shipZip,
-          contactName: shipContactName,
-          contactPhone: shipContactPhone,
-          contactEmail: shipContactEmail
-        };
-
-        custQuote.billing = {
-          addr1: billAddr1,
-          addr2: billAddr2,
-          city: billCity,
-          state: billState,
-          zip: billZip,
-          contactName: billContactName,
-          contactPhone: billContactPhone,
-          contactEmail: billContactEmail
-        };
-
-        custQuote.tax = {
-          taxExempt: !!(taxExempt && taxExempt.checked),
-          county: county
-        };
-      }
-
-      // Save updated quotes
+      // Save updated quotes & refresh master quote display
       CUSTOMER_QUOTES[key] = custQuote;
       safeSaveCustomerQuotes();
       renderMasterQuote(custQuote);
@@ -1159,9 +1167,9 @@
         body += "Ship To / Notes:\n" + shipTo + "\n\n";
       }
 
-      // If customer details are enabled, include them in email
-      var newCustomerDetailsEnabled = newCustomerBox && newCustomerBox.checked;
-      if (newCustomerDetailsEnabled) {
+      // If user enabled account details, include them in the email (not saved)
+      var newCustomerBox = document.getElementById("newCustomer");
+      if (newCustomerBox && newCustomerBox.checked) {
         function val2(id) {
           var el = document.getElementById(id);
           return el ? trimString(el.value || "") : "";
@@ -1169,7 +1177,7 @@
 
         var billingSame2 = document.getElementById("billingSameAsShipping");
 
-        // Shipping (again for body)
+        // Shipping
         var sAddr1 = val2("shipAddr1");
         var sAddr2 = val2("shipAddr2");
         var sCity = val2("shipCity");
@@ -1206,7 +1214,7 @@
         var taxExempt2 = document.getElementById("taxExempt");
         var county2 = val2("county");
 
-        body += "Customer information:\n\n";
+        body += "Customer account information:\n\n";
 
         body += "Shipping Address:\n";
         if (sAddr1) body += sAddr1 + "\n";
