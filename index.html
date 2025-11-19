@@ -214,6 +214,18 @@
       margin-top: 0.75rem;
       flex-wrap: wrap;
     }
+    /* Edit master quote section */
+    #editCustomerSection h3 {
+      font-size: 0.95rem;
+      margin: 0.75rem 0 0.25rem 0;
+    }
+    #editCustomerSection .manage-table th,
+    #editCustomerSection .manage-table td {
+      font-size: 0.8rem;
+    }
+    #editCustomerSection input[type="number"] {
+      width: 80px;
+    }
   </style>
 </head>
 <body>
@@ -366,21 +378,48 @@
       <h2 style="font-size:1.1rem;margin-top:0;">Manage customers</h2>
       <p class="note">
         View or remove saved customers and their master quotes. To update pricing,
-        select a customer on the main screen and adjust prices there; changes save
-        when you generate an order.
+        select a customer on the main screen and adjust prices there, or use Edit
+        below. Changes save when you generate an order or when you click Save here.
       </p>
       <table class="manage-table">
         <thead>
           <tr>
             <th>Customer</th>
             <th style="width:70px;">Items</th>
-            <th style="width:90px;">Actions</th>
+            <th style="width:120px;">Actions</th>
           </tr>
         </thead>
         <tbody id="manageCustomersBody">
           <!-- filled by JS -->
         </tbody>
       </table>
+
+      <!-- Editable master quote section -->
+      <div id="editCustomerSection" style="display:none;">
+        <h3>Edit master quote for <span id="editCustomerName"></span></h3>
+        <table class="manage-table">
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Item</th>
+              <th>UOM</th>
+              <th>Price</th>
+              <th style="width:70px;">Remove</th>
+            </tr>
+          </thead>
+          <tbody id="editCustomerBody">
+            <!-- rows added by JS -->
+          </tbody>
+        </table>
+        <div class="manage-actions">
+          <button type="button" class="small-btn" onclick="saveEditedCustomerQuote()">
+            Save
+          </button>
+          <button type="button" class="small-btn" onclick="cancelEditCustomer()">
+            Cancel
+          </button>
+        </div>
+      </div>
 
       <div class="manage-actions">
         <button type="button" class="small-btn" onclick="exportCustomerData()">
@@ -418,6 +457,7 @@
     // }
     var CUSTOMER_QUOTES = {};
     var CURRENT_CUSTOMER_KEY = null;
+    var EDITING_CUSTOMER_KEY = null;
 
     function trimString(str) {
       return (str || "").replace(/^\s+|\s+$/g, "");
@@ -767,7 +807,7 @@
       }
 
       card.style.display = "block";
-      note.textContent = "Saved pricing for " + (cust.displayName || "") + ". Adjust prices in the main items list; changes save when you generate an order.";
+      note.textContent = "Saved pricing for " + (cust.displayName || "") + ". Adjust prices in the main items list or via Manage customers.";
 
       var codes = Object.keys(cust.items || {}).sort();
       if (codes.length === 0) {
@@ -992,6 +1032,7 @@
       var overlay = document.getElementById("manageCustomersOverlay");
       if (!overlay) return;
       buildManageCustomersTable();
+      hideEditCustomerSection();
       overlay.style.display = "flex";
     }
 
@@ -999,6 +1040,14 @@
       var overlay = document.getElementById("manageCustomersOverlay");
       if (!overlay) return;
       overlay.style.display = "none";
+    }
+
+    function hideEditCustomerSection() {
+      var sec = document.getElementById("editCustomerSection");
+      if (sec) sec.style.display = "none";
+      EDITING_CUSTOMER_KEY = null;
+      var tbody = document.getElementById("editCustomerBody");
+      if (tbody) tbody.innerHTML = "";
     }
 
     function buildManageCustomersTable() {
@@ -1036,6 +1085,16 @@
         countCell.textContent = itemsCount;
 
         var actionsCell = document.createElement("td");
+
+        var editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.className = "small-btn";
+        editBtn.style.marginRight = "0.25rem";
+        editBtn.textContent = "Edit";
+        editBtn.onclick = function() {
+          openEditCustomer(key);
+        };
+
         var delBtn = document.createElement("button");
         delBtn.type = "button";
         delBtn.className = "small-btn";
@@ -1050,8 +1109,13 @@
               var card = document.getElementById("masterQuoteCard");
               if (card) card.style.display = "none";
             }
+            if (EDITING_CUSTOMER_KEY === key) {
+              hideEditCustomerSection();
+            }
           }
         };
+
+        actionsCell.appendChild(editBtn);
         actionsCell.appendChild(delBtn);
 
         row.appendChild(nameCell);
@@ -1059,6 +1123,143 @@
         row.appendChild(actionsCell);
         tbody.appendChild(row);
       });
+    }
+
+    function openEditCustomer(key) {
+      var cust = CUSTOMER_QUOTES[key];
+      if (!cust) return;
+      EDITING_CUSTOMER_KEY = key;
+
+      var sec = document.getElementById("editCustomerSection");
+      var nameSpan = document.getElementById("editCustomerName");
+      var tbody = document.getElementById("editCustomerBody");
+      if (!sec || !nameSpan || !tbody) return;
+
+      nameSpan.textContent = cust.displayName || key;
+      tbody.innerHTML = "";
+
+      var items = cust.items || {};
+      var codes = Object.keys(items).sort();
+
+      if (codes.length === 0) {
+        var row = document.createElement("tr");
+        var cell = document.createElement("td");
+        cell.colSpan = 5;
+        cell.textContent = "No items in this master quote yet.";
+        row.appendChild(cell);
+        tbody.appendChild(row);
+      } else {
+        codes.forEach(function(code) {
+          var entry = items[code];
+          var row = document.createElement("tr");
+
+          // Code
+          var codeCell = document.createElement("td");
+          codeCell.textContent = entry.code || code || "";
+          row.appendChild(codeCell);
+
+          // Item name (read-only text)
+          var nameCell = document.createElement("td");
+          nameCell.textContent = entry.name || "";
+          row.appendChild(nameCell);
+
+          // UOM (read-only)
+          var uomCell = document.createElement("td");
+          uomCell.textContent = entry.uom || "";
+          row.appendChild(uomCell);
+
+          // Price (editable)
+          var priceCell = document.createElement("td");
+          var priceInput = document.createElement("input");
+          priceInput.type = "number";
+          priceInput.min = "0";
+          priceInput.step = "0.01";
+          priceInput.inputMode = "decimal";
+          if (typeof entry.price === "number") {
+            priceInput.value = entry.price.toFixed(2);
+          }
+          priceCell.appendChild(priceInput);
+          row.appendChild(priceCell);
+
+          // Remove button
+          var removeCell = document.createElement("td");
+          var removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.className = "small-btn";
+          removeBtn.textContent = "Remove";
+          removeBtn.onclick = function() {
+            tbody.removeChild(row);
+          };
+          removeCell.appendChild(removeBtn);
+          row.appendChild(removeCell);
+
+          tbody.appendChild(row);
+        });
+      }
+
+      sec.style.display = "block";
+    }
+
+    function cancelEditCustomer() {
+      hideEditCustomerSection();
+    }
+
+    function saveEditedCustomerQuote() {
+      if (!EDITING_CUSTOMER_KEY) {
+        hideEditCustomerSection();
+        return;
+      }
+      var key = EDITING_CUSTOMER_KEY;
+      var cust = CUSTOMER_QUOTES[key];
+      if (!cust) {
+        hideEditCustomerSection();
+        return;
+      }
+
+      var tbody = document.getElementById("editCustomerBody");
+      if (!tbody) {
+        hideEditCustomerSection();
+        return;
+      }
+
+      var rows = tbody.getElementsByTagName("tr");
+      var newItems = {};
+      for (var i = 0; i < rows.length; i++) {
+        var cells = rows[i].cells;
+        if (!cells || cells.length < 4) continue;
+
+        var codeText = trimString(cells[0].textContent || "");
+        var nameText = trimString(cells[1].textContent || "");
+        var uomText  = trimString(cells[2].textContent || "");
+        var priceInput = cells[3].querySelector("input[type=number]");
+        var priceRaw = priceInput ? trimString(priceInput.value || "") : "";
+        var priceNum = priceRaw ? Number(priceRaw) : NaN;
+
+        // Skip rows that have no code and no name (likely "no items" message)
+        if (!codeText && !nameText) continue;
+
+        var itemCode = codeText || ("NO-CODE-" + nameText);
+        newItems[itemCode] = {
+          name: nameText,
+          uom: uomText,
+          code: codeText,
+          price: (!isNaN(priceNum) && priceNum > 0) ? priceNum : undefined
+        };
+      }
+
+      cust.items = newItems;
+      CUSTOMER_QUOTES[key] = cust;
+      safeSaveCustomerQuotes();
+
+      // Refresh manage table, master quote, and main item prices if needed
+      buildManageCustomersTable();
+      if (CURRENT_CUSTOMER_KEY === key) {
+        renderMasterQuote(cust);
+        applyMasterQuoteToTable(cust);
+      }
+
+      hideEditCustomerSection();
+      alert("Master quote updated for " + (cust.displayName || key) + ".");
     }
 
     function generateEmail() {
