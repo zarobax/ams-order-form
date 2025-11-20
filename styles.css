@@ -168,11 +168,6 @@ tr:nth-child(even) {
 }
 
 /* Global wrapping + safety for item cells */
-.items-table tr {
-  max-width: 100%;           /* never exceed container width */
-  overflow: hidden;          /* hide any weird overflow */
-}
-
 .items-table td {
   white-space: normal;       /* allow wrapping */
   overflow-wrap: break-word; /* wrap long words */
@@ -184,7 +179,9 @@ tr:nth-child(even) {
 .items-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;      /* keep cells within table width across browsers */
   font-size: 0.85rem;
+  box-sizing: border-box;   /* include padding in width calc */
 }
 
 
