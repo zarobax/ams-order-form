@@ -184,6 +184,7 @@ tr:nth-child(even) {
   box-sizing: border-box;   /* include padding in width calc */
 }
 
+
 .items-table thead th {
   background: #eef3ff;
 }
@@ -366,6 +367,12 @@ tr:nth-child(even) {
     font-weight: 500;
   }
 
+  
+  .items-table td:nth-child(4)::before {
+    content: "UOM: ";
+    font-weight: 500;
+  }
+
   /* Grouped Qty + Price row */
   .qty-price-group {
     display: flex !important;
@@ -394,7 +401,7 @@ tr:nth-child(even) {
     width: 70px !important;
     max-width: 70px !important;
     flex: 0 0 70px !important;
-    background: #ffffff !important;
+    background: #ffffff !important; /* reset pink */
     border: 1px solid #ccc;
   }
 }
