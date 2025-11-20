@@ -414,7 +414,7 @@
       />
     </div>
 
-    <!-- NEW stacked item list -->
+    <!-- Stacked item list -->
     <div id="itemsContainer">
       <!-- JS fills with .item-block elements -->
     </div>
@@ -515,6 +515,15 @@
       return (str || "").replace(/^\s+|\s+$/g, "");
     }
 
+    // Simple right-padding for text table
+    function padRight(str, len) {
+      str = String(str == null ? "" : str);
+      while (str.length < len) {
+        str += " ";
+      }
+      return str;
+    }
+
     function normalizeCustomerName(name) {
       return trimString(name).toLowerCase();
     }
@@ -564,10 +573,7 @@
       return trimString(name);
     }
 
-    // Build items list, sorted:
-    //  - items in customer.items first (if customer provided)
-    //  - within each group, sorted by code alphabetically
-    //  - with a visual divider between "previously purchased" and "other" items
+    // Build items list, sorted
     function buildItemsTable(customer) {
       var container = document.getElementById("itemsContainer");
       if (!container) return;
@@ -615,7 +621,7 @@
 
         var inQuote = !!(quoteMap && item.code && quoteMap[item.code]);
 
-        // Once we go from "has quote" → "no quote", drop a divider row (only once)
+        // Divider when leaving quote items
         if (!inQuote && seenQuoted && !dividerInserted) {
           var divider = document.createElement("div");
           divider.className = "items-divider-row";
@@ -716,8 +722,7 @@
         };
       }
 
-      // If a customer is provided, apply its stored prices;
-      // otherwise, fall back to the current global selection.
+      // Apply prices from master quote if any
       if (customer && customer.items) {
         applyMasterQuoteToTable(customer);
       } else if (CURRENT_CUSTOMER_KEY && CUSTOMER_QUOTES[CURRENT_CUSTOMER_KEY]) {
@@ -725,7 +730,7 @@
       }
     }
 
-    // Search: hides/shows item-blocks (and divider)
+    // Search
     function setupItemSearch() {
       var searchInput = document.getElementById("itemSearch");
       if (!searchInput) return;
@@ -738,7 +743,7 @@
         var blocks = container.querySelectorAll(".item-block");
         var dividers = container.querySelectorAll(".items-divider-row");
 
-        // Hide divider while searching (keeps results clean)
+        // Hide divider while searching
         for (var d = 0; d < dividers.length; d++) {
           dividers[d].style.display = term ? "none" : "";
         }
@@ -859,7 +864,6 @@
         setCountyVisibility();
       }
 
-      // expose helpers for potential reuse
       window._amsSetBillingSameState = setBillingSameState;
       window._amsSetCountyVisibility = setCountyVisibility;
       window._amsSetDetailsVisibility = setDetailsVisibility;
@@ -868,7 +872,7 @@
     function validateNewCustomerFields() {
       var newCustomer = document.getElementById("newCustomer");
       if (!(newCustomer && newCustomer.checked)) {
-        return true; // no extra validation needed
+        return true;
       }
 
       function val(id) {
@@ -912,13 +916,11 @@
       var taxExempt = document.getElementById("taxExempt");
       var county = val("county");
       if (!(taxExempt && taxExempt.checked)) {
-        // not tax exempt → county required
         if (!county) {
           alert("Please enter County (required if not tax exempt).");
           return false;
         }
       }
-
       return true;
     }
 
@@ -945,7 +947,6 @@
       tbody.innerHTML = "";
 
       if (!cust) {
-        // Show message for new/unknown customer
         card.style.display = "block";
         note.textContent = "No master quote yet for this customer. Once they place an order, their items and prices will appear here.";
         return;
@@ -1013,7 +1014,6 @@
         }
       }
 
-      // Deduplicate and limit
       var seen = {};
       var unique = [];
       for (var i = 0; i < matches.length; i++) {
@@ -1035,7 +1035,6 @@
         div.className = "customer-suggestion";
         div.textContent = name;
 
-        // Use mousedown so it fires before input loses focus
         div.addEventListener("mousedown", function (e) {
           e.preventDefault();
           var input = document.getElementById("customerName");
@@ -1074,7 +1073,6 @@
       var existing = CUSTOMER_QUOTES[key];
 
       if (!existing) {
-        // Don't create a record yet; just show generic view + "no master quote" message
         CURRENT_CUSTOMER_KEY = null;
         buildItemsTable(null);
         renderMasterQuote(null);
@@ -1089,23 +1087,19 @@
       var input = document.getElementById("customerName");
       if (!input) return;
 
-      // Prevent Enter from doing anything odd (no accidental adds)
       input.addEventListener("keydown", function (e) {
         if (e.key === "Enter") {
           e.preventDefault();
-          this.blur(); // close keyboard
+          this.blur();
         }
       });
 
-      // When user finishes editing and the field loses focus
       input.addEventListener("change", onCustomerNameChange);
 
-      // While typing, just update suggestions
       input.addEventListener("input", function () {
         updateCustomerSuggestions(this.value);
       });
 
-      // If page loads with a pre-filled name (unlikely), handle it
       if (trimString(input.value)) {
         onCustomerNameChange();
       }
@@ -1149,7 +1143,6 @@
             if (data.customers && typeof data.customers === "object") {
               newMap = data.customers;
             } else {
-              // Assume it's a plain map exported from older version
               newMap = data;
             }
           }
@@ -1158,7 +1151,6 @@
           safeSaveCustomerQuotes();
           alert("Customer data imported successfully.");
 
-          // Refresh manage panel & main UI
           buildManageCustomersTable();
           var nameInput = document.getElementById("customerName");
           if (nameInput && trimString(nameInput.value)) {
@@ -1304,21 +1296,17 @@
           var entry = items[codeKey];
           var row = document.createElement("tr");
 
-          // Store key & uom on the row (not editable)
           row.dataset.itemKey = codeKey;
           row.dataset.uom = entry.uom || "";
 
-          // Item name
           var nameCell = document.createElement("td");
           nameCell.textContent = entry.name || "";
           row.appendChild(nameCell);
 
-          // Code
           var codeCell = document.createElement("td");
           codeCell.textContent = entry.code || codeKey || "";
           row.appendChild(codeCell);
 
-          // Price (editable)
           var priceCell = document.createElement("td");
           var priceInput = document.createElement("input");
           priceInput.type = "number";
@@ -1331,7 +1319,6 @@
           priceCell.appendChild(priceInput);
           row.appendChild(priceCell);
 
-          // Remove button
           var removeCell = document.createElement("td");
           var removeBtn = document.createElement("button");
           removeBtn.type = "button";
@@ -1385,7 +1372,6 @@
         var priceRaw = priceInput ? trimString(priceInput.value || "") : "";
         var priceNum = priceRaw ? Number(priceRaw) : NaN;
 
-        // Skip placeholder rows
         if (!nameText && !codeText) continue;
 
         var rowKey = row.dataset.itemKey || "";
@@ -1404,7 +1390,6 @@
       CUSTOMER_QUOTES[key] = cust;
       safeSaveCustomerQuotes();
 
-      // Refresh manage table, master quote, and main item prices if needed
       buildManageCustomersTable();
       if (CURRENT_CUSTOMER_KEY === key) {
         renderMasterQuote(cust);
@@ -1424,15 +1409,16 @@
         return;
       }
 
-      // Validate account detail fields if user chose to include them
       if (!validateNewCustomerFields()) {
         return;
       }
 
-      var lines = [];
       var invalid = false;
 
-      // Ensure CURRENT_CUSTOMER_KEY is set based on the name entered
+      // Table rows for email
+      var rowsForTable = [];
+
+      // Ensure CURRENT_CUSTOMER_KEY is set
       var key = normalizeCustomerName(customerName);
       CURRENT_CUSTOMER_KEY = key;
       if (!CUSTOMER_QUOTES[key]) {
@@ -1440,7 +1426,7 @@
       }
       var custQuote = CUSTOMER_QUOTES[key];
 
-      // Build item lines
+      // Build row objects
       for (var i = 0; i < ITEMS.length; i++) {
         var checkbox = document.getElementById("itemCheck_" + i);
         var qtyInput = document.getElementById("itemQty_" + i);
@@ -1454,7 +1440,6 @@
             var uomText = ITEMS[i].uom || "";
             var codeText = ITEMS[i].code || "";
 
-            // price from input, else from master quote if available
             var priceInput = document.getElementById("itemPrice_" + i);
             var priceRaw = priceInput ? trimString(priceInput.value) : "";
             var priceNum = priceRaw ? Number(priceRaw) : NaN;
@@ -1466,17 +1451,20 @@
             }
 
             var effectivePrice = (!isNaN(priceNum) && priceNum > 0) ? priceNum : storedPrice;
+            var priceStr = (effectivePrice != null && !isNaN(effectivePrice))
+              ? "$" + effectivePrice.toFixed(2)
+              : "";
 
-            var line = "- " + qty + " x " + displayName + " (" + uomText + ")";
-            if (codeText) {
-              line += " / " + codeText;
-            }
-            if (effectivePrice != null && !isNaN(effectivePrice)) {
-              line += " — $" + effectivePrice.toFixed(2) + " each";
-            }
-            lines.push(line);
+            rowsForTable.push({
+              qty: qty,
+              item: displayName,
+              uom: uomText,
+              code: codeText,
+              priceStr: priceStr,
+              priceNum: effectivePrice
+            });
 
-            // Update master quote for this customer
+            // Update master quote
             if (!custQuote.items) {
               custQuote.items = {};
             }
@@ -1489,11 +1477,9 @@
                 price: (effectivePrice != null && !isNaN(effectivePrice)) ? effectivePrice : undefined
               };
             } else {
-              // Update price if a new one was entered
               if (!isNaN(priceNum) && priceNum > 0) {
                 custQuote.items[codeKey].price = priceNum;
               }
-              // Keep name/uom/code in sync in case of changes
               custQuote.items[codeKey].name = displayName;
               custQuote.items[codeKey].uom = uomText;
               custQuote.items[codeKey].code = codeText;
@@ -1507,12 +1493,12 @@
         return;
       }
 
-      if (lines.length === 0) {
+      if (rowsForTable.length === 0) {
         alert("Please select at least one item and enter quantities.");
         return;
       }
 
-      // Save updated quotes & refresh master quote display and sorted list
+      // Save updated quotes & refresh master quote view
       CUSTOMER_QUOTES[key] = custQuote;
       safeSaveCustomerQuotes();
       renderMasterQuote(custQuote);
@@ -1522,13 +1508,61 @@
 
       var body = "New order for customer: " + customerName + "\n\n";
       body += "Please pick and pack the following:\n\n";
-      body += lines.join("\n") + "\n\n";
+
+      // Build text table for email
+      var qtyHeader = "Qty";
+      var itemHeader = "Item";
+      var uomHeader = "UOM";
+      var codeHeader = "Code";
+      var priceHeader = "Price";
+
+      var qtyWidth = qtyHeader.length;
+      var itemWidth = itemHeader.length;
+      var uomWidth = uomHeader.length;
+      var codeWidth = codeHeader.length;
+      var priceWidth = priceHeader.length;
+
+      rowsForTable.forEach(function(r) {
+        qtyWidth = Math.max(qtyWidth, String(r.qty).length);
+        itemWidth = Math.max(itemWidth, String(r.item).length);
+        uomWidth = Math.max(uomWidth, String(r.uom).length);
+        codeWidth = Math.max(codeWidth, String(r.code).length);
+        priceWidth = Math.max(priceWidth, String(r.priceStr).length);
+      });
+
+      var headerLine =
+        padRight(qtyHeader, qtyWidth) + "  " +
+        padRight(itemHeader, itemWidth) + "  " +
+        padRight(uomHeader, uomWidth) + "  " +
+        padRight(codeHeader, codeWidth) + "  " +
+        padRight(priceHeader, priceWidth);
+
+      var sepLine =
+        padRight("".padEnd(qtyWidth, "-"), qtyWidth) + "  " +
+        padRight("".padEnd(itemWidth, "-"), itemWidth) + "  " +
+        padRight("".padEnd(uomWidth, "-"), uomWidth) + "  " +
+        padRight("".padEnd(codeWidth, "-"), codeWidth) + "  " +
+        padRight("".padEnd(priceWidth, "-"), priceWidth);
+
+      var tableLines = [headerLine, sepLine];
+
+      rowsForTable.forEach(function(r) {
+        var line =
+          padRight(r.qty, qtyWidth) + "  " +
+          padRight(r.item, itemWidth) + "  " +
+          padRight(r.uom, uomWidth) + "  " +
+          padRight(r.code, codeWidth) + "  " +
+          padRight(r.priceStr, priceWidth);
+        tableLines.push(line);
+      });
+
+      body += tableLines.join("\n") + "\n\n";
 
       if (shipTo) {
         body += "Ship To / Notes:\n" + shipTo + "\n\n";
       }
 
-      // If user enabled account details, include them in the email (not saved)
+      // Account details if checked
       var newCustomerBox = document.getElementById("newCustomer");
       if (newCustomerBox && newCustomerBox.checked) {
         function val2(id) {
@@ -1538,7 +1572,6 @@
 
         var billingSame2 = document.getElementById("billingSameAsShipping");
 
-        // Shipping
         var sAddr1 = val2("shipAddr1");
         var sAddr2 = val2("shipAddr2");
         var sCity = val2("shipCity");
@@ -1548,7 +1581,6 @@
         var sContactPhone = val2("shipContactPhone");
         var sContactEmail = val2("shipContactEmail");
 
-        // Billing
         var bAddr1, bAddr2, bCity, bState, bZip;
         var bContactName, bContactPhone, bContactEmail;
 
@@ -1616,7 +1648,6 @@
     }
 
     function initPage() {
-      // Initially, no customer → just code-sorted list
       buildItemsTable(null);
       setupItemSearch();
       setupNewCustomerSection();
@@ -1628,7 +1659,6 @@
       }
     }
 
-    // Load items from items.json, THEN init
     function loadItemsAndInit() {
       safeLoadCustomerQuotes();
 
@@ -1655,14 +1685,12 @@
       }
     }
 
-    // Build UI when page loads
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", loadItemsAndInit);
     } else {
       loadItemsAndInit();
     }
 
-    // Register service worker (for PWA)
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("service-worker.js")
         .catch(function (err) {
