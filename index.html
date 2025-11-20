@@ -62,10 +62,7 @@
       font-weight: 600;
     }
     tr:nth-child(even) {
-      background: transparent;
-    }
-    .items-table tbody tr:nth-child(even) {
-      background: #f3f3f3;
+      background: #fafafa;
     }
     input[type="number"] {
       width: 70px;
@@ -74,12 +71,6 @@
       border: 1px solid #ccc;
       font-size: 0.85rem;
       box-sizing: border-box;
-    }
-    .qty-label,
-    .price-label {
-      margin-right: 0.25rem;
-      font-size: 0.8rem;
-      color: #444;
     }
     input[type="number"]:disabled {
       background: #eee;
@@ -244,7 +235,71 @@
       background: #eef3ff;
       color: #555;
     }
-  </style>
+  
+
+    /* Labels for Qty/Price */
+    .qty-label,
+    .price-label {
+      margin-right: 0.25rem;
+      font-size: 0.8rem;
+      color: #444;
+    }
+
+    /* Mobile layout for items table */
+    @media (max-width: 700px) {
+      .items-table thead {
+        display: none;
+      }
+      .items-table,
+      .items-table tbody,
+      .items-table tr,
+      .items-table td {
+        display: block;
+        width: 100%;
+      }
+      .items-table tr {
+        position: relative;
+        border-bottom: 1px solid #eee;
+        padding: 0.4rem 0.5rem 0.4rem 2.4rem; /* left padding for checkbox */
+      }
+      .items-table td:first-child {
+        position: absolute;
+        left: 0.6rem;
+        top: 0.6rem;
+        width: auto;
+        padding-right: 0;
+      }
+      .items-table td:nth-child(2) {
+        font-weight: 600;
+        font-size: 1rem;
+        margin-bottom: 0.2rem;
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+      }
+      .items-table td:nth-child(3),
+      .items-table td:nth-child(4) {
+        margin-bottom: 0.15rem;
+        white-space: normal;
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+      }
+      /* Qty and Price on the same line */
+      .items-table td:nth-child(5),
+      .items-table td:nth-child(6) {
+        display: inline-block;
+        width: auto;
+        white-space: nowrap;
+      }
+      .items-table td:nth-child(5) {
+        margin-right: 0.75rem;
+      }
+      .items-table td:nth-child(5) input,
+      .items-table td:nth-child(6) input {
+        width: 70px;
+      }
+    }
+</style>
 </head>
 <body>
 
@@ -632,7 +687,7 @@
         qtyCell.appendChild(qtyLabel);
         qtyCell.appendChild(qtyInput);
 
-        // Price input with label (per customer)
+        // Price input (per customer) with label
         var priceCell = document.createElement("td");
         var priceLabel = document.createElement("span");
         priceLabel.className = "price-label";
