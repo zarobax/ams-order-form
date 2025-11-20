@@ -162,6 +162,19 @@ tr:nth-child(even) {
   background: #fafafa;
 }
 
+/* Global wrapping + safety for item cells */
+.items-table tr {
+  max-width: 100%;           /* never exceed container width */
+  overflow: hidden;          /* hide any weird overflow */
+}
+
+.items-table td {
+  white-space: normal;       /* allow wrapping */
+  overflow-wrap: break-word; /* wrap long words */
+  word-break: break-word;    /* extra safety */
+  min-width: 0;              /* let flex/block shrink on small screens */
+}
+
 /* Items table header style */
 .items-table thead th {
   background: #eef3ff;
