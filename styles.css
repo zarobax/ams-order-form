@@ -158,9 +158,13 @@ th {
   font-weight: 600;
 }
 
-/* Table row striping for item list */
-.items-table tr:nth-child(even) {
-  background: #fafafa; /* full-row grey background inside the card */
+tr:nth-child(even) {
+  background: transparent; /* reset default striping */
+}
+
+/* Apply striping only to the item cells so it matches card padding */
+.items-table tbody tr:nth-child(even) {
+  background: #fafafa;
 }
 
 /* Global wrapping + safety for item cells */
@@ -179,6 +183,7 @@ th {
   font-size: 0.85rem;
   box-sizing: border-box;   /* include padding in width calc */
 }
+
 
 .items-table thead th {
   background: #eef3ff;
@@ -357,6 +362,12 @@ th {
   .items-table td:nth-child(4) {
     margin-bottom: 0.15rem;
   }
+  .items-table td:nth-child(4)::before {
+    content: "UOM: ";
+    font-weight: 500;
+  }
+
+  
   .items-table td:nth-child(4)::before {
     content: "UOM: ";
     font-weight: 500;

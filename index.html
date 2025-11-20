@@ -12,7 +12,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="apple-touch-icon" href="icon-192.png">
 
-  <!-- External styles -->
+  
+
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -110,7 +111,7 @@
   <div class="card" id="masterQuoteCard" style="display:none;">
     <h2 style="font-size:1.1rem;margin-top:0;">Master Quote</h2>
     <p class="note" id="masterQuoteNote"></p>
-    <table>
+    <table class="items-table">
       <thead>
         <tr>
           <th>Item</th>
@@ -142,7 +143,6 @@
       />
     </div>
 
-    <!-- Items table: now wired to .items-table styles -->
     <table class="items-table">
       <thead>
         <tr>
@@ -224,8 +224,1173 @@
     </div>
   </div>
 
-  <!-- External JS -->
-  <script src="app.js"></script>
+  <script>
+    // === CONFIGURE THESE ===
+    var WAREHOUSE_EMAIL = "amssupply@outlook.com";
+    var COMPANY_NAME = "AMS Supply";
+    var STORAGE_KEY = "ams_customer_quotes_v1"; // wrapper with .customers
+    // =======================
+
+    // Items loaded from items.json
+    // Each: { name, uom, code }
+    var ITEMS = [];
+
+    // Per-customer data:
+    // CUSTOMER_QUOTES = {
+    //   normalizedName: {
+    //     displayName: "ABC Trucking",
+    //     items: { codeKey: { name,uom,code,price } }
+    //   }
+    // }
+    var CUSTOMER_QUOTES = {};
+    var CURRENT_CUSTOMER_KEY = null;
+    var EDITING_CUSTOMER_KEY = null;
+
+    function trimString(str) {
+      return (str || "").replace(/^\s+|\s+$/g, "");
+    }
+
+    function normalizeCustomerName(name) {
+      return trimString(name).toLowerCase();
+    }
+
+    function safeLoadCustomerQuotes() {
+      try {
+        var raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        var data = JSON.parse(raw);
+        // New format: wrapper with .customers
+        if (data && typeof data === "object" && data.customers && typeof data.customers === "object") {
+          CUSTOMER_QUOTES = data.customers;
+          return;
+        }
+        // Old format: plain object map
+        if (data && typeof data === "object") {
+          CUSTOMER_QUOTES = data;
+        }
+      } catch (e) {
+        console.log("Could not load customer quotes:", e);
+      }
+    }
+
+    function safeSaveCustomerQuotes() {
+      try {
+        var wrapper = {
+          type: "ams_customer_db",
+          version: 1,
+          customers: CUSTOMER_QUOTES
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(wrapper));
+      } catch (e) {
+        console.log("Could not save customer quotes:", e);
+      }
+    }
+
+    function cleanName(rawName, uom) {
+      if (!rawName || !uom) return rawName || "";
+      var name = rawName;
+      var u = trimString(uom);
+      var suffix = " (" + u + ")";
+      if (name.length >= suffix.length &&
+          name.lastIndexOf(suffix) === name.length - suffix.length) {
+        name = name.substring(0, name.length - suffix.length);
+      }
+      name = name.replace(/\s{2,}/g, " ");
+      return trimString(name);
+    }
+
+    // Build items table, sorted:
+    //  - items in customer.items first (if customer provided)
+    //  - within each group, sorted by code alphabetically
+    //  - with a visual divider between "previously purchased" and "all other" items
+    function buildItemsTable(customer) {
+      var tbody = document.getElementById("itemsTableBody");
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      var indices = [];
+      for (var i = 0; i < ITEMS.length; i++) {
+        indices.push(i);
+      }
+
+      var quoteMap = (customer && customer.items) ? customer.items : null;
+
+      indices.sort(function(a, b) {
+        var ia = ITEMS[a] || {};
+        var ib = ITEMS[b] || {};
+
+        var codeA = (ia.code || "").toUpperCase();
+        var codeB = (ib.code || "").toUpperCase();
+
+        var inQuoteA = !!(quoteMap && ia.code && quoteMap[ia.code]);
+        var inQuoteB = !!(quoteMap && ib.code && quoteMap[ib.code]);
+
+        // Quoted items first
+        if (inQuoteA && !inQuoteB) return -1;
+        if (!inQuoteA && inQuoteB) return 1;
+
+        // Then by code
+        if (codeA < codeB) return -1;
+        if (codeA > codeB) return 1;
+
+        // Fallback: name
+        var nameA = (ia.name || "").toLowerCase();
+        var nameB = (ib.name || "").toLowerCase();
+        if (nameA < nameB) return -1;
+        if (nameA > nameB) return 1;
+        return 0;
+      });
+
+      var seenQuoted = false;
+      var dividerInserted = false;
+
+      for (var idx = 0; idx < indices.length; idx++) {
+        var i = indices[idx];
+        var item = ITEMS[i];
+
+        var inQuote = !!(quoteMap && item.code && quoteMap[item.code]);
+
+        // Once we go from "has quote" → "no quote", drop a divider row (only once)
+        if (!inQuote && seenQuoted && !dividerInserted) {
+          var divRow = document.createElement("tr");
+          divRow.className = "items-divider-row";
+          var divCell = document.createElement("td");
+          divCell.colSpan = 6;
+          divCell.textContent = "Previously Purchased";
+          divRow.appendChild(divCell);
+          tbody.appendChild(divRow);
+          dividerInserted = true;
+        }
+
+        if (inQuote) {
+          seenQuoted = true;
+        }
+
+        var row = document.createElement("tr");
+
+        // Checkbox
+        var checkCell = document.createElement("td");
+        var checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.id = "itemCheck_" + i;
+        checkbox.setAttribute("data-qty-id", "itemQty_" + i);
+        checkCell.appendChild(checkbox);
+
+        // Name
+        var nameCell = document.createElement("td");
+        nameCell.textContent = cleanName(item.name, item.uom);
+
+        // Code
+        var codeCell = document.createElement("td");
+        codeCell.textContent = item.code || "";
+
+        // UOM
+        var uomCell = document.createElement("td");
+        uomCell.textContent = item.uom || "";
+
+        // Qty input
+        var qtyCell = document.createElement("td");
+        var qtyInput = document.createElement("input");
+        qtyInput.type = "number";
+        qtyInput.min = "1";
+        qtyInput.step = "1";
+        qtyInput.disabled = true;
+        qtyInput.id = "itemQty_" + i;
+        qtyCell.appendChild(qtyInput);
+
+        // Price input (per customer)
+        var priceCell = document.createElement("td");
+        var priceInput = document.createElement("input");
+        priceInput.type = "number";
+        priceInput.min = "0";
+        priceInput.step = "0.01";
+        priceInput.inputMode = "decimal";
+        priceInput.id = "itemPrice_" + i;
+        priceCell.appendChild(priceInput);
+
+        row.appendChild(checkCell);
+        row.appendChild(nameCell);
+        row.appendChild(codeCell);
+        row.appendChild(uomCell);
+        row.appendChild(qtyCell);
+        row.appendChild(priceCell);
+
+        tbody.appendChild(row);
+      }
+
+      // Checkbox → qty enable/disable
+      var allCheckboxes = tbody.querySelectorAll("input[type=checkbox]");
+      for (var j = 0; j < allCheckboxes.length; j++) {
+        allCheckboxes[j].onchange = function () {
+          var qtyId = this.getAttribute("data-qty-id");
+          var input = document.getElementById(qtyId);
+          if (!input) return;
+          if (this.checked) {
+            input.disabled = false;
+          } else {
+            input.disabled = true;
+            input.value = "";
+          }
+        };
+      }
+
+      // If a customer is provided, apply its stored prices;
+      // otherwise, fall back to the current global selection.
+      if (customer && customer.items) {
+        applyMasterQuoteToTable(customer);
+      } else if (CURRENT_CUSTOMER_KEY && CUSTOMER_QUOTES[CURRENT_CUSTOMER_KEY]) {
+        applyMasterQuoteToTable(CUSTOMER_QUOTES[CURRENT_CUSTOMER_KEY]);
+      }
+    }
+
+    // Search: hides/shows rows without changing IDs / selections
+    function setupItemSearch() {
+      var searchInput = document.getElementById("itemSearch");
+      if (!searchInput) return;
+
+      searchInput.addEventListener("input", function () {
+        var term = trimString(this.value).toLowerCase();
+        var tbody = document.getElementById("itemsTableBody");
+        if (!tbody) return;
+
+        var rows = tbody.getElementsByTagName("tr");
+        for (var i = 0; i < rows.length; i++) {
+          var row = rows[i];
+
+          // Skip divider rows from filtering logic
+          if (row.classList && row.classList.contains("items-divider-row")) {
+            row.style.display = term ? "none" : "";
+            continue;
+          }
+
+          // columns: 1 = name, 2 = code, 3 = UOM
+          var nameCell = row.cells[1];
+          var codeCell = row.cells[2];
+          var uomCell = row.cells[3];
+          if (!nameCell || !uomCell) continue;
+
+          var nameText = nameCell.textContent.toLowerCase();
+          var codeText = (codeCell.textContent || "").toLowerCase();
+          var uomText = (uomCell.textContent || "").toLowerCase();
+
+          if (!term) {
+            row.style.display = "";
+          } else if (
+            nameText.indexOf(term) !== -1 ||
+            codeText.indexOf(term) !== -1 ||
+            uomText.indexOf(term) !== -1
+          ) {
+            row.style.display = "";
+          } else {
+            row.style.display = "none";
+          }
+        }
+      });
+    }
+
+    function setupNewCustomerSection() {
+      var newCustomer = document.getElementById("newCustomer");
+      var details = document.getElementById("newCustomerDetails");
+      var billingSame = document.getElementById("billingSameAsShipping");
+      var taxExempt = document.getElementById("taxExempt");
+      var countyRow = document.getElementById("countyRow");
+
+      function setDetailsVisibility() {
+        if (newCustomer && newCustomer.checked) {
+          details.style.display = "block";
+        } else {
+          details.style.display = "none";
+        }
+      }
+
+      function setBillingSameState() {
+        var shipAddr1 = document.getElementById("shipAddr1");
+        var shipAddr2 = document.getElementById("shipAddr2");
+        var shipCity = document.getElementById("shipCity");
+        var shipState = document.getElementById("shipState");
+        var shipZip = document.getElementById("shipZip");
+        var shipContactName = document.getElementById("shipContactName");
+        var shipContactPhone = document.getElementById("shipContactPhone");
+        var shipContactEmail = document.getElementById("shipContactEmail");
+
+        var billAddr1 = document.getElementById("billAddr1");
+        var billAddr2 = document.getElementById("billAddr2");
+        var billCity = document.getElementById("billCity");
+        var billState = document.getElementById("billState");
+        var billZip = document.getElementById("billZip");
+        var billContactName = document.getElementById("billContactName");
+        var billContactPhone = document.getElementById("billContactPhone");
+        var billContactEmail = document.getElementById("billContactEmail");
+
+        if (!billAddr1 || !billAddr2 || !billCity || !billState || !billZip ||
+            !billContactName || !billContactPhone || !billContactEmail) return;
+
+        if (billingSame && billingSame.checked) {
+          billAddr1.value = shipAddr1 ? shipAddr1.value : "";
+          billAddr2.value = shipAddr2 ? shipAddr2.value : "";
+          billCity.value = shipCity ? shipCity.value : "";
+          billState.value = shipState ? shipState.value : "";
+          billZip.value = shipZip ? shipZip.value : "";
+          billContactName.value = shipContactName ? shipContactName.value : "";
+          billContactPhone.value = shipContactPhone ? shipContactPhone.value : "";
+          billContactEmail.value = shipContactEmail ? shipContactEmail.value : "";
+
+          billAddr1.disabled = true;
+          billAddr2.disabled = true;
+          billCity.disabled = true;
+          billState.disabled = true;
+          billZip.disabled = true;
+          billContactName.disabled = true;
+          billContactPhone.disabled = true;
+          billContactEmail.disabled = true;
+        } else {
+          billAddr1.disabled = false;
+          billAddr2.disabled = false;
+          billCity.disabled = false;
+          billState.disabled = false;
+          billZip.disabled = false;
+          billContactName.disabled = false;
+          billContactPhone.disabled = false;
+          billContactEmail.disabled = false;
+        }
+      }
+
+      function setCountyVisibility() {
+        if (taxExempt && taxExempt.checked) {
+          countyRow.style.display = "none";
+          var countyInput = document.getElementById("county");
+          if (countyInput) countyInput.value = "";
+        } else {
+          countyRow.style.display = "block";
+        }
+      }
+
+      if (newCustomer) {
+        newCustomer.onchange = setDetailsVisibility;
+        setDetailsVisibility();
+      }
+
+      if (billingSame) {
+        billingSame.onchange = setBillingSameState;
+      }
+
+      if (taxExempt) {
+        taxExempt.onchange = setCountyVisibility;
+        setCountyVisibility();
+      }
+
+      // expose helpers for potential reuse
+      window._amsSetBillingSameState = setBillingSameState;
+      window._amsSetCountyVisibility = setCountyVisibility;
+      window._amsSetDetailsVisibility = setDetailsVisibility;
+    }
+
+    function validateNewCustomerFields() {
+      var newCustomer = document.getElementById("newCustomer");
+      if (!(newCustomer && newCustomer.checked)) {
+        return true; // no extra validation needed
+      }
+
+      function val(id) {
+        var el = document.getElementById(id);
+        return el ? trimString(el.value || "") : "";
+      }
+
+      // Shipping required (except shipAddr2)
+      var shipAddr1 = val("shipAddr1");
+      var shipCity = val("shipCity");
+      var shipState = val("shipState");
+      var shipZip = val("shipZip");
+      var shipContactName = val("shipContactName");
+      var shipContactPhone = val("shipContactPhone");
+      var shipContactEmail = val("shipContactEmail");
+
+      if (!shipAddr1 || !shipCity || !shipState || !shipZip ||
+          !shipContactName || !shipContactPhone || !shipContactEmail) {
+        alert("Please fill in all required Shipping fields (everything with *).");
+        return false;
+      }
+
+      var billingSame = document.getElementById("billingSameAsShipping");
+      if (!billingSame || !billingSame.checked) {
+        // Billing required (except billAddr2)
+        var billAddr1 = val("billAddr1");
+        var billCity = val("billCity");
+        var billState = val("billState");
+        var billZip = val("billZip");
+        var billContactName = val("billContactName");
+        var billContactPhone = val("billContactPhone");
+        var billContactEmail = val("billContactEmail");
+
+        if (!billAddr1 || !billCity || !billState || !billZip ||
+            !billContactName || !billContactPhone || !billContactEmail) {
+          alert("Please fill in all required Billing fields (everything with *).");
+          return false;
+        }
+      }
+
+      var taxExempt = document.getElementById("taxExempt");
+      var county = val("county");
+      if (!(taxExempt && taxExempt.checked)) {
+        // not tax exempt → county required
+        if (!county) {
+          alert("Please enter County (required if not tax exempt).");
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    function applyMasterQuoteToTable(cust) {
+      if (!cust || !cust.items) return;
+      for (var i = 0; i < ITEMS.length; i++) {
+        var code = ITEMS[i].code || "";
+        if (!code) continue;
+        var entry = cust.items[code];
+        if (!entry || typeof entry.price !== "number") continue;
+        var priceInput = document.getElementById("itemPrice_" + i);
+        if (priceInput) {
+          priceInput.value = entry.price.toFixed(2);
+        }
+      }
+    }
+
+    function renderMasterQuote(cust) {
+      var card = document.getElementById("masterQuoteCard");
+      var note = document.getElementById("masterQuoteNote");
+      var tbody = document.getElementById("masterQuoteBody");
+      if (!card || !note || !tbody) return;
+
+      tbody.innerHTML = "";
+
+      if (!cust) {
+        // Show message for new/unknown customer
+        card.style.display = "block";
+        note.textContent = "No master quote yet for this customer. Once they place an order, their items and prices will appear here.";
+        return;
+      }
+
+      card.style.display = "block";
+      note.textContent = "Saved pricing for " + (cust.displayName || "") + ". Adjust prices in the main items list or via Manage customers.";
+
+      var codes = Object.keys(cust.items || {}).sort();
+      if (codes.length === 0) {
+        var row = document.createElement("tr");
+        var cell = document.createElement("td");
+        cell.colSpan = 3;
+        cell.textContent = "No items in this customer's master quote yet.";
+        row.appendChild(cell);
+        tbody.appendChild(row);
+        return;
+      }
+
+      for (var i = 0; i < codes.length; i++) {
+        var key = codes[i];
+        var entry = cust.items[key];
+        var row = document.createElement("tr");
+
+        var nameCell = document.createElement("td");
+        nameCell.textContent = entry.name || "";
+
+        var codeCell = document.createElement("td");
+        codeCell.textContent = entry.code || key || "";
+
+        var priceCell = document.createElement("td");
+        if (typeof entry.price === "number") {
+          priceCell.textContent = "$" + entry.price.toFixed(2);
+        } else {
+          priceCell.textContent = "-";
+        }
+
+        row.appendChild(nameCell);
+        row.appendChild(codeCell);
+        row.appendChild(priceCell);
+        tbody.appendChild(row);
+      }
+    }
+
+    function updateCustomerSuggestions(term) {
+      var box = document.getElementById("customerSuggestions");
+      if (!box) return;
+
+      box.innerHTML = "";
+      term = trimString(term).toLowerCase();
+
+      if (!term) {
+        box.style.display = "none";
+        return;
+      }
+
+      var matches = [];
+      for (var key in CUSTOMER_QUOTES) {
+        if (!Object.prototype.hasOwnProperty.call(CUSTOMER_QUOTES, key)) continue;
+        var c = CUSTOMER_QUOTES[key];
+        var name = c && c.displayName ? c.displayName : "";
+        if (!name) continue;
+        if (name.toLowerCase().indexOf(term) !== -1) {
+          matches.push(name);
+        }
+      }
+
+      // Deduplicate and limit
+      var seen = {};
+      var unique = [];
+      for (var i = 0; i < matches.length; i++) {
+        var n = matches[i];
+        if (!seen[n]) {
+          seen[n] = true;
+          unique.push(n);
+        }
+        if (unique.length >= 8) break;
+      }
+
+      if (unique.length === 0) {
+        box.style.display = "none";
+        return;
+      }
+
+      unique.forEach(function(name) {
+        var div = document.createElement("div");
+        div.className = "customer-suggestion";
+        div.textContent = name;
+
+        // Use mousedown so it fires before input loses focus
+        div.addEventListener("mousedown", function (e) {
+          e.preventDefault();
+          var input = document.getElementById("customerName");
+          if (input) {
+            input.value = name;
+          }
+          box.style.display = "none";
+          onCustomerNameChange();
+        });
+
+        box.appendChild(div);
+      });
+
+      box.style.display = "block";
+    }
+
+    function onCustomerNameChange() {
+      var input = document.getElementById("customerName");
+      var box = document.getElementById("customerSuggestions");
+      if (box) {
+        box.style.display = "none";
+      }
+      if (!input) return;
+
+      var rawName = trimString(input.value);
+      var card = document.getElementById("masterQuoteCard");
+
+      if (!rawName) {
+        CURRENT_CUSTOMER_KEY = null;
+        if (card) card.style.display = "none";
+        // keep items in generic code-sorted order
+        buildItemsTable(null);
+        return;
+      }
+
+      var key = normalizeCustomerName(rawName);
+      CURRENT_CUSTOMER_KEY = key;
+
+      var existing = CUSTOMER_QUOTES[key];
+      if (!existing) {
+        // New customer record shell (no stored items yet)
+        existing = {
+          displayName: rawName,
+          items: {}
+        };
+        CUSTOMER_QUOTES[key] = existing;
+        safeSaveCustomerQuotes();
+
+        // Sort items by code only (no prior purchases)
+        buildItemsTable(existing);
+        renderMasterQuote(null);
+      } else {
+        // Rebuild items with purchased items at top, then render master quote
+        buildItemsTable(existing);
+        renderMasterQuote(existing);
+      }
+    }
+
+    function setupCustomerNameWatcher() {
+      var input = document.getElementById("customerName");
+      if (!input) return;
+
+      // When user finishes editing and hits "Done"/Enter
+      input.addEventListener("change", onCustomerNameChange);
+
+      // While typing, just update suggestions
+      input.addEventListener("input", function () {
+        updateCustomerSuggestions(this.value);
+      });
+
+      // If page loads with a pre-filled name (unlikely), handle it
+      if (trimString(input.value)) {
+        onCustomerNameChange();
+      }
+    }
+
+    function exportCustomerData() {
+      try {
+        var data = {
+          type: "ams_customer_db",
+          version: 1,
+          customers: CUSTOMER_QUOTES
+        };
+        var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = "ams_customer_data.json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        console.log("Export failed:", e);
+        alert("Could not export customer data.");
+      }
+    }
+
+    function handleImportFileChange(evt) {
+      var input = evt.target;
+      if (!input.files || !input.files[0]) return;
+
+      var file = input.files[0];
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        try {
+          var text = e.target.result;
+          var data = JSON.parse(text);
+          var newMap = {};
+
+          if (data && typeof data === "object") {
+            if (data.customers && typeof data.customers === "object") {
+              newMap = data.customers;
+            } else {
+              // Assume it's a plain map exported from older version
+              newMap = data;
+            }
+          }
+
+          CUSTOMER_QUOTES = newMap;
+          safeSaveCustomerQuotes();
+          alert("Customer data imported successfully.");
+
+          // Refresh manage panel & main UI
+          buildManageCustomersTable();
+          var nameInput = document.getElementById("customerName");
+          if (nameInput && trimString(nameInput.value)) {
+            onCustomerNameChange();
+          } else {
+            var card = document.getElementById("masterQuoteCard");
+            if (card) card.style.display = "none";
+            buildItemsTable(null);
+          }
+        } catch (err) {
+          console.log("Import error:", err);
+          alert("Could not import file. Make sure it's a valid export from this app.");
+        } finally {
+          input.value = "";
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function openManageCustomers() {
+      var overlay = document.getElementById("manageCustomersOverlay");
+      if (!overlay) return;
+      buildManageCustomersTable();
+      hideEditCustomerSection();
+      overlay.style.display = "flex";
+    }
+
+    function closeManageCustomers() {
+      var overlay = document.getElementById("manageCustomersOverlay");
+      if (!overlay) return;
+      overlay.style.display = "none";
+    }
+
+    function hideEditCustomerSection() {
+      var sec = document.getElementById("editCustomerSection");
+      if (sec) sec.style.display = "none";
+      EDITING_CUSTOMER_KEY = null;
+      var tbody = document.getElementById("editCustomerBody");
+      if (tbody) tbody.innerHTML = "";
+    }
+
+    function buildManageCustomersTable() {
+      var tbody = document.getElementById("manageCustomersBody");
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      var keys = Object.keys(CUSTOMER_QUOTES).sort(function(a,b) {
+        var an = (CUSTOMER_QUOTES[a].displayName || "").toLowerCase();
+        var bn = (CUSTOMER_QUOTES[b].displayName || "").toLowerCase();
+        if (an < bn) return -1;
+        if (an > bn) return 1;
+        return 0;
+      });
+
+      if (keys.length === 0) {
+        var row = document.createElement("tr");
+        var cell = document.createElement("td");
+        cell.colSpan = 3;
+        cell.textContent = "No customers saved yet.";
+        row.appendChild(cell);
+        tbody.appendChild(row);
+        return;
+      }
+
+      keys.forEach(function(key) {
+        var cust = CUSTOMER_QUOTES[key];
+        var row = document.createElement("tr");
+
+        var nameCell = document.createElement("td");
+        nameCell.textContent = cust.displayName || key;
+
+        var itemsCount = cust.items ? Object.keys(cust.items).length : 0;
+        var countCell = document.createElement("td");
+        countCell.textContent = itemsCount;
+
+        var actionsCell = document.createElement("td");
+
+        var editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.className = "small-btn";
+        editBtn.style.marginRight = "0.25rem";
+        editBtn.textContent = "Edit";
+        editBtn.onclick = function() {
+          openEditCustomer(key);
+        };
+
+        var delBtn = document.createElement("button");
+        delBtn.type = "button";
+        delBtn.className = "small-btn";
+        delBtn.textContent = "Delete";
+        delBtn.onclick = function() {
+          if (confirm("Delete customer \"" + (cust.displayName || key) + "\" and all stored pricing?")) {
+            delete CUSTOMER_QUOTES[key];
+            safeSaveCustomerQuotes();
+            buildManageCustomersTable();
+            if (CURRENT_CUSTOMER_KEY === key) {
+              CURRENT_CUSTOMER_KEY = null;
+              var card = document.getElementById("masterQuoteCard");
+              if (card) card.style.display = "none";
+              buildItemsTable(null);
+            }
+            if (EDITING_CUSTOMER_KEY === key) {
+              hideEditCustomerSection();
+            }
+          }
+        };
+
+        actionsCell.appendChild(editBtn);
+        actionsCell.appendChild(delBtn);
+
+        row.appendChild(nameCell);
+        row.appendChild(countCell);
+        row.appendChild(actionsCell);
+        tbody.appendChild(row);
+      });
+    }
+
+    function openEditCustomer(key) {
+      var cust = CUSTOMER_QUOTES[key];
+      if (!cust) return;
+      EDITING_CUSTOMER_KEY = key;
+
+      var sec = document.getElementById("editCustomerSection");
+      var nameSpan = document.getElementById("editCustomerName");
+      var tbody = document.getElementById("editCustomerBody");
+      if (!sec || !nameSpan || !tbody) return;
+
+      nameSpan.textContent = cust.displayName || key;
+      tbody.innerHTML = "";
+
+      var items = cust.items || {};
+      var codes = Object.keys(items).sort();
+
+      if (codes.length === 0) {
+        var row = document.createElement("tr");
+        var cell = document.createElement("td");
+        cell.colSpan = 4;
+        cell.textContent = "No items in this master quote yet.";
+        row.appendChild(cell);
+        tbody.appendChild(row);
+      } else {
+        codes.forEach(function(codeKey) {
+          var entry = items[codeKey];
+          var row = document.createElement("tr");
+
+          // Store key & uom on the row (not editable)
+          row.dataset.itemKey = codeKey;
+          row.dataset.uom = entry.uom || "";
+
+          // Item name
+          var nameCell = document.createElement("td");
+          nameCell.textContent = entry.name || "";
+          row.appendChild(nameCell);
+
+          // Code
+          var codeCell = document.createElement("td");
+          codeCell.textContent = entry.code || codeKey || "";
+          row.appendChild(codeCell);
+
+          // Price (editable)
+          var priceCell = document.createElement("td");
+          var priceInput = document.createElement("input");
+          priceInput.type = "number";
+          priceInput.min = "0";
+          priceInput.step = "0.01";
+          priceInput.inputMode = "decimal";
+          if (typeof entry.price === "number") {
+            priceInput.value = entry.price.toFixed(2);
+          }
+          priceCell.appendChild(priceInput);
+          row.appendChild(priceCell);
+
+          // Remove button
+          var removeCell = document.createElement("td");
+          var removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.className = "small-btn";
+          removeBtn.textContent = "Remove";
+          removeBtn.onclick = function() {
+            tbody.removeChild(row);
+          };
+          removeCell.appendChild(removeBtn);
+          row.appendChild(removeCell);
+
+          tbody.appendChild(row);
+        });
+      }
+
+      sec.style.display = "block";
+    }
+
+    function cancelEditCustomer() {
+      hideEditCustomerSection();
+    }
+
+    function saveEditedCustomerQuote() {
+      if (!EDITING_CUSTOMER_KEY) {
+        hideEditCustomerSection();
+        return;
+      }
+      var key = EDITING_CUSTOMER_KEY;
+      var cust = CUSTOMER_QUOTES[key];
+      if (!cust) {
+        hideEditCustomerSection();
+        return;
+      }
+
+      var tbody = document.getElementById("editCustomerBody");
+      if (!tbody) {
+        hideEditCustomerSection();
+        return;
+      }
+
+      var rows = tbody.getElementsByTagName("tr");
+      var newItems = {};
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var cells = row.cells;
+        if (!cells || cells.length < 3) continue;
+
+        var nameText = trimString(cells[0].textContent || "");
+        var codeText = trimString(cells[1].textContent || "");
+        var priceInput = cells[2].querySelector("input[type=number]");
+        var priceRaw = priceInput ? trimString(priceInput.value || "") : "";
+        var priceNum = priceRaw ? Number(priceRaw) : NaN;
+
+        // Skip placeholder rows
+        if (!nameText && !codeText) continue;
+
+        var rowKey = row.dataset.itemKey || "";
+        var uomText = row.dataset.uom || "";
+
+        var itemCodeKey = rowKey || (codeText || ("NO-CODE-" + nameText));
+        newItems[itemCodeKey] = {
+          name: nameText,
+          uom: uomText,
+          code: codeText,
+          price: (!isNaN(priceNum) && priceNum > 0) ? priceNum : undefined
+        };
+      }
+
+      cust.items = newItems;
+      CUSTOMER_QUOTES[key] = cust;
+      safeSaveCustomerQuotes();
+
+      // Refresh manage table, master quote, and main item prices if needed
+      buildManageCustomersTable();
+      if (CURRENT_CUSTOMER_KEY === key) {
+        renderMasterQuote(cust);
+        buildItemsTable(cust);
+      }
+
+      hideEditCustomerSection();
+      alert("Master quote updated for " + (cust.displayName || key) + ".");
+    }
+
+    function generateEmail() {
+      var customerName = trimString(document.getElementById("customerName").value);
+      var shipTo = trimString(document.getElementById("shipTo").value);
+
+      if (!customerName) {
+        alert("Please enter the customer name.");
+        return;
+      }
+
+      // Validate account detail fields if user chose to include them
+      if (!validateNewCustomerFields()) {
+        return;
+      }
+
+      var lines = [];
+      var invalid = false;
+
+      // Ensure CURRENT_CUSTOMER_KEY is set based on the name entered
+      var key = normalizeCustomerName(customerName);
+      CURRENT_CUSTOMER_KEY = key;
+      if (!CUSTOMER_QUOTES[key]) {
+        CUSTOMER_QUOTES[key] = { displayName: customerName, items: {} };
+      }
+      var custQuote = CUSTOMER_QUOTES[key];
+
+      // Build item lines
+      for (var i = 0; i < ITEMS.length; i++) {
+        var checkbox = document.getElementById("itemCheck_" + i);
+        var qtyInput = document.getElementById("itemQty_" + i);
+        if (checkbox && checkbox.checked) {
+          var qty = trimString(qtyInput.value);
+          var qtyNum = Number(qty);
+          if (!qty || isNaN(qtyNum) || qtyNum <= 0) {
+            invalid = true;
+          } else {
+            var displayName = cleanName(ITEMS[i].name, ITEMS[i].uom);
+            var uomText = ITEMS[i].uom || "";
+            var codeText = ITEMS[i].code || "";
+
+            // price from input, else from master quote if available
+            var priceInput = document.getElementById("itemPrice_" + i);
+            var priceRaw = priceInput ? trimString(priceInput.value) : "";
+            var priceNum = priceRaw ? Number(priceRaw) : NaN;
+
+            var storedPrice = null;
+            if (custQuote && custQuote.items && codeText && custQuote.items[codeText] &&
+                typeof custQuote.items[codeText].price === "number") {
+              storedPrice = custQuote.items[codeText].price;
+            }
+
+            var effectivePrice = (!isNaN(priceNum) && priceNum > 0) ? priceNum : storedPrice;
+
+            var line = "- " + qty + " x " + displayName + " (" + uomText + ")";
+            if (codeText) {
+              line += " / " + codeText;
+            }
+            if (effectivePrice != null && !isNaN(effectivePrice)) {
+              line += " — $" + effectivePrice.toFixed(2) + " each";
+            }
+            lines.push(line);
+
+            // Update master quote for this customer
+            if (!custQuote.items) {
+              custQuote.items = {};
+            }
+            var codeKey = codeText || ("NO-CODE-" + displayName);
+            if (!custQuote.items[codeKey]) {
+              custQuote.items[codeKey] = {
+                name: displayName,
+                uom: uomText,
+                code: codeText,
+                price: (effectivePrice != null && !isNaN(effectivePrice)) ? effectivePrice : undefined
+              };
+            } else {
+              // Update price if a new one was entered
+              if (!isNaN(priceNum) && priceNum > 0) {
+                custQuote.items[codeKey].price = priceNum;
+              }
+              // Keep name/uom/code in sync in case of changes
+              custQuote.items[codeKey].name = displayName;
+              custQuote.items[codeKey].uom = uomText;
+              custQuote.items[codeKey].code = codeText;
+            }
+          }
+        }
+      }
+
+      if (invalid) {
+        alert("For each checked item, enter a quantity of at least 1.");
+        return;
+      }
+
+      if (lines.length === 0) {
+        alert("Please select at least one item and enter quantities.");
+        return;
+      }
+
+      // Save updated quotes & refresh master quote display and sorted list
+      CUSTOMER_QUOTES[key] = custQuote;
+      safeSaveCustomerQuotes();
+      renderMasterQuote(custQuote);
+      buildItemsTable(custQuote);
+
+      var subject = "Order for " + customerName;
+
+      var body = "New order for customer: " + customerName + "\n\n";
+      body += "Please pick and pack the following:\n\n";
+      body += lines.join("\n") + "\n\n";
+
+      if (shipTo) {
+        body += "Ship To / Notes:\n" + shipTo + "\n\n";
+      }
+
+      // If user enabled account details, include them in the email (not saved)
+      var newCustomerBox = document.getElementById("newCustomer");
+      if (newCustomerBox && newCustomerBox.checked) {
+        function val2(id) {
+          var el = document.getElementById(id);
+          return el ? trimString(el.value || "") : "";
+        }
+
+        var billingSame2 = document.getElementById("billingSameAsShipping");
+
+        // Shipping
+        var sAddr1 = val2("shipAddr1");
+        var sAddr2 = val2("shipAddr2");
+        var sCity = val2("shipCity");
+        var sState = val2("shipState");
+        var sZip = val2("shipZip");
+        var sContactName = val2("shipContactName");
+        var sContactPhone = val2("shipContactPhone");
+        var sContactEmail = val2("shipContactEmail");
+
+        // Billing
+        var bAddr1, bAddr2, bCity, bState, bZip;
+        var bContactName, bContactPhone, bContactEmail;
+
+        if (billingSame2 && billingSame2.checked) {
+          bAddr1 = sAddr1;
+          bAddr2 = sAddr2;
+          bCity = sCity;
+          bState = sState;
+          bZip = sZip;
+          bContactName = sContactName;
+          bContactPhone = sContactPhone;
+          bContactEmail = sContactEmail;
+        } else {
+          bAddr1 = val2("billAddr1");
+          bAddr2 = val2("billAddr2");
+          bCity = val2("billCity");
+          bState = val2("billState");
+          bZip = val2("billZip");
+          bContactName = val2("billContactName");
+          bContactPhone = val2("billContactPhone");
+          bContactEmail = val2("billContactEmail");
+        }
+
+        var taxExempt2 = document.getElementById("taxExempt");
+        var county2 = val2("county");
+
+        body += "Customer account information:\n\n";
+
+        body += "Shipping Address:\n";
+        if (sAddr1) body += sAddr1 + "\n";
+        if (sAddr2) body += sAddr2 + "\n";
+        if (sCity || sState || sZip) {
+          body += [sCity, sState, sZip].filter(function (p) { return p; }).join(", ") + "\n";
+        }
+        if (sContactName) body += "Contact Name: " + sContactName + "\n";
+        if (sContactPhone) body += "Contact Phone: " + sContactPhone + "\n";
+        if (sContactEmail) body += "Contact Email: " + sContactEmail + "\n";
+        body += "\n";
+
+        body += "Billing Address:\n";
+        if (bAddr1) body += bAddr1 + "\n";
+        if (bAddr2) body += bAddr2 + "\n";
+        if (bCity || bState || bZip) {
+          body += [bCity, bState, bZip].filter(function (p) { return p; }).join(", ") + "\n";
+        }
+        if (bContactName) body += "Contact Name (AP): " + bContactName + "\n";
+        if (bContactPhone) body += "Contact Phone (AP): " + bContactPhone + "\n";
+        if (bContactEmail) body += "Contact Email (AP): " + bContactEmail + "\n";
+        body += "\n";
+
+        body += "Tax Exempt Status: " + (taxExempt2 && taxExempt2.checked ? "Tax Exempt" : "Taxable") + "\n";
+        if (!(taxExempt2 && taxExempt2.checked) && county2) {
+          body += "County: " + county2 + "\n";
+        }
+        body += "\n";
+      }
+
+      body += "Thank you,\n";
+
+      var mailto = "mailto:" + encodeURIComponent(WAREHOUSE_EMAIL)
+        + "?subject=" + encodeURIComponent(subject)
+        + "&body=" + encodeURIComponent(body);
+
+      window.location.href = mailto;
+    }
+
+    function initPage() {
+      // Initially, no customer → just code-sorted list
+      buildItemsTable(null);
+      setupItemSearch();
+      setupNewCustomerSection();
+      setupCustomerNameWatcher();
+
+      var importInput = document.getElementById("importFile");
+      if (importInput) {
+        importInput.addEventListener("change", handleImportFileChange);
+      }
+    }
+
+    // Load items from items.json, THEN init
+    function loadItemsAndInit() {
+      safeLoadCustomerQuotes();
+
+      if (typeof fetch === "function") {
+        fetch("items.json")
+          .then(function (response) { return response.json(); })
+          .then(function (data) {
+            if (Object.prototype.toString.call(data) === "[object Array]") {
+              ITEMS = data;
+            } else {
+              console.log("items.json did not contain an array; using empty list.");
+              ITEMS = [];
+            }
+            initPage();
+          })
+          .catch(function (error) {
+            console.log("Error loading items.json:", error);
+            ITEMS = [];
+            initPage();
+          });
+      } else {
+        ITEMS = [];
+        initPage();
+      }
+    }
+
+    // Build UI when page loads
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", loadItemsAndInit);
+    } else {
+      loadItemsAndInit();
+    }
+
+    // Register service worker (for PWA)
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js")
+        .catch(function (err) {
+          console.log("Service worker registration failed:", err);
+        });
+    }
+  </script>
 
 </body>
 </html>
