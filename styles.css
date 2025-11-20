@@ -156,6 +156,78 @@ input[type="number"]:disabled {
     padding: 0.4rem 0;
   }
 
+  /* --- FIX: Checkbox and item name on same line --- */
+  .items-table td:first-child,
+  .items-table td:nth-child(2) {
+    display: inline-block;
+    vertical-align: middle;
+  }
+
+  .items-table td:first-child {
+    width: 30px;
+  }
+
+  .items-table td:first-child input[type="checkbox"] {
+    transform: scale(1.2);
+    margin: 0;
+  }
+
+  .items-table td:nth-child(2) {
+    width: calc(100% - 40px);
+    font-weight: 600;
+    font-size: 1rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .items-table td:nth-child(3)::before {
+    content: "Code: ";
+    font-weight: 500;
+  }
+
+  .items-table td:nth-child(4)::before {
+    content: "UOM: ";
+    font-weight: 500;
+  }
+
+  /* === NEW GROUPED QTY + PRICE ROW === */
+  .qty-price-group {
+    display: flex !important;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.3rem;
+  }
+
+  .qty-price-group div {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  .qty-price-group label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-bottom: 0.1rem;
+  }
+
+  .qty-price-group input[type="number"] {
+    width: 100%;
+  }
+}
+
+  .items-table,
+  .items-table tbody,
+  .items-table tr,
+  .items-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .items-table tr {
+    border-bottom: 1px solid #eee;
+    padding: 0.4rem 0;
+  }
+
   .items-table td {
     padding: 0.2rem 0;
   }
