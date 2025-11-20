@@ -995,4 +995,42 @@ function initPage() {
   }
 }
 
-function l
+function loadItemsAndInit() {
+  safeLoadCustomerQuotes();
+
+  if (typeof fetch === "function") {
+    fetch("items.json")
+      .then(response => response.json())
+      .then(data => {
+        if (Object.prototype.toString.call(data) === "[object Array]") {
+          ITEMS = data;
+        } else {
+          console.log("items.json did not contain an array; using empty list.");
+          ITEMS = [];
+        }
+        initPage();
+      })
+      .catch(error => {
+        console.log("Error loading items.json:", error);
+        ITEMS = [];
+        initPage();
+      });
+  } else {
+    ITEMS = [];
+    initPage();
+  }
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", loadItemsAndInit);
+} else {
+  loadItemsAndInit();
+}
+
+// Optional PWA service worker
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js")
+    .catch(err => {
+      console.log("Service worker registration failed:", err);
+    });
+}
