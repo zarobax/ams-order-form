@@ -796,7 +796,7 @@ function openManageCustomers() {
   if (!overlay) return;
   buildManageCustomersTable();
   hideEditCustomerSection();
-  overlay.style.display = "flex";
+  overlay.style.display = "block";
 }
 
 function closeManageCustomers() {
