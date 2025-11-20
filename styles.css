@@ -322,6 +322,9 @@ tr:nth-child(even) {
     font-weight: 600;
     font-size: 1rem;
     margin-bottom: 0.3rem;
+    white-space: normal;          /* allow wrapping */
+    word-wrap: break-word;        /* break long names */
+    overflow-wrap: anywhere;      /* extra-safe wrapping */
   }
 
   /* Code label/line */
