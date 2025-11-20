@@ -156,7 +156,7 @@ input[type="number"]:disabled {
     padding: 0.4rem 0;
   }
 
-  /* --- FIX: Checkbox and item name on same line --- */
+  /* Checkbox + item name on same line */
   .items-table td:first-child,
   .items-table td:nth-child(2) {
     display: inline-block;
@@ -189,71 +189,7 @@ input[type="number"]:disabled {
     font-weight: 500;
   }
 
-  /* === NEW GROUPED QTY + PRICE ROW === */
-  .qty-price-group {
-    display: flex !important;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-    margin-top: 0.3rem;
-  }
-
-  .qty-price-group div {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-  }
-
-  .qty-price-group label {
-    font-size: 0.75rem;
-    font-weight: 500;
-    margin-bottom: 0.1rem;
-  }
-
-  .qty-price-group input[type="number"] {
-    width: 100%;
-  }
-}
-
-  .items-table,
-  .items-table tbody,
-  .items-table tr,
-  .items-table td {
-    display: block;
-    width: 100%;
-  }
-
-  .items-table tr {
-    border-bottom: 1px solid #eee;
-    padding: 0.4rem 0;
-  }
-
-  .items-table td {
-    padding: 0.2rem 0;
-  }
-
-  .items-table td:nth-child(1) input[type="checkbox"] {
-    transform: scale(1.2);
-    margin-bottom: 0.3rem;
-  }
-
-  .items-table td:nth-child(2) {
-    font-weight: 600;
-    font-size: 1rem;
-    margin-bottom: 0.3rem;
-  }
-
-  .items-table td:nth-child(3)::before {
-    content: "Code: ";
-    font-weight: 500;
-  }
-
-  .items-table td:nth-child(4)::before {
-    content: "UOM: ";
-    font-weight: 500;
-  }
-
-  /* === NEW GROUPED QTY + PRICE ROW === */
+  /* Grouped Qty + Price row */
   .qty-price-group {
     display: flex !important;
     justify-content: space-between;
@@ -286,12 +222,11 @@ input[type="number"]:disabled {
   right: 0;
   bottom: 0;
   left: 0;
-  display: none;              /* JS will set this to block */
+  display: none; /* JS sets this to block when open */
   background: rgba(0, 0, 0, 0.4);
   z-index: 1000;
 }
 
-/* Center the panel in the viewport */
 #manageCustomersPanel {
   position: absolute;
   top: 50%;
@@ -302,5 +237,3 @@ input[type="number"]:disabled {
   max-height: 90vh;
   overflow: auto;
 }
-
-
