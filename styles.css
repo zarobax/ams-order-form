@@ -286,18 +286,21 @@ input[type="number"]:disabled {
   right: 0;
   bottom: 0;
   left: 0;
-  display: none; /* JS sets this to flex when open */
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
+  display: none;              /* JS will set this to block */
   background: rgba(0, 0, 0, 0.4);
   z-index: 1000;
 }
 
+/* Center the panel in the viewport */
 #manageCustomersPanel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   width: 100%;
   max-width: 900px;
   max-height: 90vh;
   overflow: auto;
 }
+
 
