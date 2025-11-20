@@ -364,6 +364,7 @@ tr:nth-child(even) {
     width: 70px !important;
     max-width: 70px !important;
     flex: 0 0 70px !important;
-    background: none !important;
+    background: #ffffff !important; /* reset pink */
+    border: 1px solid #ccc;
   }
 }
