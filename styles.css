@@ -168,6 +168,7 @@ tr:nth-child(even) {
   background: #eef3ff;
 }
 
+/* Divider row between quoted and non-quoted items */
 .items-divider-row td {
   font-size: 0.75rem;
   text-align: center;
@@ -186,6 +187,13 @@ tr:nth-child(even) {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
+}
+
+/* Checkbox column alignment (desktop + mobile) */
+.items-table td:first-child {
+  width: 32px;
+  text-align: left;
+  padding-right: 0;
 }
 
 /* ---------- Sticky header in Items card ---------- */
@@ -231,7 +239,7 @@ tr:nth-child(even) {
   right: 0;
   bottom: 0;
   left: 0;
-  display: none;            /* starts hidden */
+  display: none;            /* starts hidden, shown via JS */
   align-items: center;
   justify-content: center;
   padding: 1rem;
@@ -239,13 +247,13 @@ tr:nth-child(even) {
   z-index: 1000;
 }
 
-/* Panel already has .card styling from HTML */
+/* Panel is a .card, so it already has padding, radius, shadow */
 #manageCustomersPanel {
   width: 100%;
   max-width: 900px;
   max-height: 90vh;
   overflow: auto;
-  box-sizing: border-box;
+  box-sizing: border-box;   /* avoid overflow on the right side */
 }
 
 /* ================================
@@ -284,7 +292,7 @@ tr:nth-child(even) {
     padding: 0.4rem 0;
   }
 
-  /* Checkbox + name on same line */
+  /* Checkbox + name on same line in mobile */
   .items-table td:first-child,
   .items-table td:nth-child(2) {
     display: inline-block;
