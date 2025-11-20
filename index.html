@@ -227,20 +227,61 @@
       width: 80px;
     }
 
-    /* Divider row between purchased items and other items */
-    .items-divider-row td {
+    /* Divider row for items */
+    .items-divider-row {
       font-size: 0.75rem;
       text-align: center;
       font-style: italic;
       background: #eef3ff;
       color: #555;
+      padding: 0.25rem 0.5rem;
+      border-radius: 8px;
+      margin: 0.4rem 0;
     }
 
-    /* Responsive table container */
+    /* Responsive table container (for master + manage tables) */
     .table-container {
       width: 100%;
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
+    }
+
+    /* NEW: stacked item layout */
+    #itemsContainer {
+      margin-top: 0.5rem;
+    }
+    .item-block {
+      border-bottom: 1px solid #eee;
+      padding: 0.6rem 0;
+    }
+    .item-header {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-weight: 600;
+      margin-bottom: 0.2rem;
+      font-size: 0.9rem;
+    }
+    .item-meta {
+      font-size: 0.8rem;
+      color: #555;
+      margin-bottom: 0.3rem;
+    }
+    .item-meta-line {
+      margin: 0.05rem 0;
+    }
+    .item-inputs {
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .item-inputs span {
+      margin-right: 0.15rem;
+    }
+    .item-inputs input[type="number"] {
+      width: 80px;
     }
   </style>
 </head>
@@ -373,22 +414,9 @@
       />
     </div>
 
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>✔</th>
-            <th>Item</th>
-            <th>Code</th>
-            <th>UOM</th>
-            <th>Qty</th>
-            <th>Price</th>
-          </tr>
-        </thead>
-        <tbody id="itemsTableBody">
-          <tr><td colspan="6">If you can see this, JavaScript did not run.</td></tr>
-        </tbody>
-      </table>
+    <!-- NEW stacked item list -->
+    <div id="itemsContainer">
+      <!-- JS fills with .item-block elements -->
     </div>
   </div>
 
@@ -536,14 +564,14 @@
       return trimString(name);
     }
 
-    // Build items table, sorted:
+    // Build items list, sorted:
     //  - items in customer.items first (if customer provided)
     //  - within each group, sorted by code alphabetically
     //  - with a visual divider between "previously purchased" and "other" items
     function buildItemsTable(customer) {
-      var tbody = document.getElementById("itemsTableBody");
-      if (!tbody) return;
-      tbody.innerHTML = "";
+      var container = document.getElementById("itemsContainer");
+      if (!container) return;
+      container.innerHTML = "";
 
       var indices = [];
       for (var i = 0; i < ITEMS.length; i++) {
@@ -589,13 +617,10 @@
 
         // Once we go from "has quote" → "no quote", drop a divider row (only once)
         if (!inQuote && seenQuoted && !dividerInserted) {
-          var divRow = document.createElement("tr");
-          divRow.className = "items-divider-row";
-          var divCell = document.createElement("td");
-          divCell.colSpan = 6;
-          divCell.textContent = "Other items";
-          divRow.appendChild(divCell);
-          tbody.appendChild(divRow);
+          var divider = document.createElement("div");
+          divider.className = "items-divider-row";
+          divider.textContent = "Other items";
+          container.appendChild(divider);
           dividerInserted = true;
         }
 
@@ -603,60 +628,80 @@
           seenQuoted = true;
         }
 
-        var row = document.createElement("tr");
+        // Build stacked block:
+        var block = document.createElement("div");
+        block.className = "item-block";
+        block.dataset.index = i;
 
-        // Checkbox
-        var checkCell = document.createElement("td");
+        // Header: checkbox + item name
+        var header = document.createElement("div");
+        header.className = "item-header";
+
         var checkbox = document.createElement("input");
         checkbox.type = "checkbox";
         checkbox.id = "itemCheck_" + i;
         checkbox.setAttribute("data-qty-id", "itemQty_" + i);
-        checkCell.appendChild(checkbox);
 
-        // Name
-        var nameCell = document.createElement("td");
-        nameCell.textContent = cleanName(item.name, item.uom);
+        var nameSpan = document.createElement("span");
+        nameSpan.className = "item-name";
+        nameSpan.textContent = cleanName(item.name, item.uom);
 
-        // Code
-        var codeCell = document.createElement("td");
-        codeCell.textContent = item.code || "";
+        header.appendChild(checkbox);
+        header.appendChild(nameSpan);
 
-        // UOM
-        var uomCell = document.createElement("td");
-        uomCell.textContent = item.uom || "";
+        // Meta: code + UOM lines
+        var meta = document.createElement("div");
+        meta.className = "item-meta";
 
-        // Qty input
-        var qtyCell = document.createElement("td");
+        var codeLine = document.createElement("div");
+        codeLine.className = "item-meta-line";
+        codeLine.innerHTML = 'Item Code: <span class="item-code">' + (item.code || "") + "</span>";
+
+        var uomLine = document.createElement("div");
+        uomLine.className = "item-meta-line";
+        uomLine.innerHTML = 'UOM: <span class="item-uom">' + (item.uom || "") + "</span>";
+
+        meta.appendChild(codeLine);
+        meta.appendChild(uomLine);
+
+        // Inputs: Qty and Price
+        var inputs = document.createElement("div");
+        inputs.className = "item-inputs";
+
+        var qtyLabel = document.createElement("span");
+        qtyLabel.textContent = "Qty:";
+
         var qtyInput = document.createElement("input");
         qtyInput.type = "number";
         qtyInput.min = "1";
         qtyInput.step = "1";
         qtyInput.disabled = true;
         qtyInput.id = "itemQty_" + i;
-        qtyCell.appendChild(qtyInput);
 
-        // Price input (per customer)
-        var priceCell = document.createElement("td");
+        var priceLabel = document.createElement("span");
+        priceLabel.textContent = "Price:";
+
         var priceInput = document.createElement("input");
         priceInput.type = "number";
         priceInput.min = "0";
         priceInput.step = "0.01";
         priceInput.inputMode = "decimal";
         priceInput.id = "itemPrice_" + i;
-        priceCell.appendChild(priceInput);
 
-        row.appendChild(checkCell);
-        row.appendChild(nameCell);
-        row.appendChild(codeCell);
-        row.appendChild(uomCell);
-        row.appendChild(qtyCell);
-        row.appendChild(priceCell);
+        inputs.appendChild(qtyLabel);
+        inputs.appendChild(qtyInput);
+        inputs.appendChild(priceLabel);
+        inputs.appendChild(priceInput);
 
-        tbody.appendChild(row);
+        block.appendChild(header);
+        block.appendChild(meta);
+        block.appendChild(inputs);
+
+        container.appendChild(block);
       }
 
       // Checkbox → qty enable/disable
-      var allCheckboxes = tbody.querySelectorAll("input[type=checkbox]");
+      var allCheckboxes = container.querySelectorAll("input[type=checkbox]");
       for (var j = 0; j < allCheckboxes.length; j++) {
         allCheckboxes[j].onchange = function () {
           var qtyId = this.getAttribute("data-qty-id");
@@ -680,46 +725,44 @@
       }
     }
 
-    // Search: hides/shows rows without changing IDs / selections
+    // Search: hides/shows item-blocks (and divider)
     function setupItemSearch() {
       var searchInput = document.getElementById("itemSearch");
       if (!searchInput) return;
 
       searchInput.addEventListener("input", function () {
         var term = trimString(this.value).toLowerCase();
-        var tbody = document.getElementById("itemsTableBody");
-        if (!tbody) return;
+        var container = document.getElementById("itemsContainer");
+        if (!container) return;
 
-        var rows = tbody.getElementsByTagName("tr");
-        for (var i = 0; i < rows.length; i++) {
-          var row = rows[i];
+        var blocks = container.querySelectorAll(".item-block");
+        var dividers = container.querySelectorAll(".items-divider-row");
 
-          // Skip divider rows from filtering logic
-          if (row.classList && row.classList.contains("items-divider-row")) {
-            row.style.display = term ? "none" : "";
-            continue;
-          }
+        // Hide divider while searching (keeps results clean)
+        for (var d = 0; d < dividers.length; d++) {
+          dividers[d].style.display = term ? "none" : "";
+        }
 
-          // columns: 1 = name, 2 = code, 3 = UOM
-          var nameCell = row.cells[1];
-          var codeCell = row.cells[2];
-          var uomCell = row.cells[3];
-          if (!nameCell || !uomCell) continue;
+        for (var i = 0; i < blocks.length; i++) {
+          var block = blocks[i];
+          var nameEl = block.querySelector(".item-name");
+          var codeEl = block.querySelector(".item-code");
+          var uomEl = block.querySelector(".item-uom");
 
-          var nameText = nameCell.textContent.toLowerCase();
-          var codeText = (codeCell.textContent || "").toLowerCase();
-          var uomText = (uomCell.textContent || "").toLowerCase();
+          var nameText = (nameEl ? nameEl.textContent : "").toLowerCase();
+          var codeText = (codeEl ? codeEl.textContent : "").toLowerCase();
+          var uomText = (uomEl ? uomEl.textContent : "").toLowerCase();
 
           if (!term) {
-            row.style.display = "";
+            block.style.display = "";
           } else if (
             nameText.indexOf(term) !== -1 ||
             codeText.indexOf(term) !== -1 ||
             uomText.indexOf(term) !== -1
           ) {
-            row.style.display = "";
+            block.style.display = "";
           } else {
-            row.style.display = "none";
+            block.style.display = "none";
           }
         }
       });
