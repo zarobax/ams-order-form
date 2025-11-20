@@ -246,7 +246,7 @@
       -webkit-overflow-scrolling: touch;
     }
 
-    /* NEW: stacked item layout */
+    /* Stacked item layout */
     #itemsContainer {
       margin-top: 0.5rem;
     }
@@ -515,13 +515,14 @@
       return (str || "").replace(/^\s+|\s+$/g, "");
     }
 
-    // Simple right-padding for text table
-    function padRight(str, len) {
-      str = String(str == null ? "" : str);
-      while (str.length < len) {
-        str += " ";
-      }
-      return str;
+    // Escape HTML for email body
+    function escapeHtml(str) {
+      return String(str == null ? "" : str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
     }
 
     function normalizeCustomerName(name) {
@@ -533,12 +534,10 @@
         var raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return;
         var data = JSON.parse(raw);
-        // New format: wrapper with .customers
         if (data && typeof data === "object" && data.customers && typeof data.customers === "object") {
           CUSTOMER_QUOTES = data.customers;
           return;
         }
-        // Old format: plain object map
         if (data && typeof data === "object") {
           CUSTOMER_QUOTES = data;
         }
@@ -596,15 +595,12 @@
         var inQuoteA = !!(quoteMap && ia.code && quoteMap[ia.code]);
         var inQuoteB = !!(quoteMap && ib.code && quoteMap[ib.code]);
 
-        // Quoted items first
         if (inQuoteA && !inQuoteB) return -1;
         if (!inQuoteA && inQuoteB) return 1;
 
-        // Then by code
         if (codeA < codeB) return -1;
         if (codeA > codeB) return 1;
 
-        // Fallback: name
         var nameA = (ia.name || "").toLowerCase();
         var nameB = (ib.name || "").toLowerCase();
         if (nameA < nameB) return -1;
@@ -621,7 +617,6 @@
 
         var inQuote = !!(quoteMap && item.code && quoteMap[item.code]);
 
-        // Divider when leaving quote items
         if (!inQuote && seenQuoted && !dividerInserted) {
           var divider = document.createElement("div");
           divider.className = "items-divider-row";
@@ -634,12 +629,10 @@
           seenQuoted = true;
         }
 
-        // Build stacked block:
         var block = document.createElement("div");
         block.className = "item-block";
         block.dataset.index = i;
 
-        // Header: checkbox + item name
         var header = document.createElement("div");
         header.className = "item-header";
 
@@ -655,7 +648,6 @@
         header.appendChild(checkbox);
         header.appendChild(nameSpan);
 
-        // Meta: code + UOM lines
         var meta = document.createElement("div");
         meta.className = "item-meta";
 
@@ -670,7 +662,6 @@
         meta.appendChild(codeLine);
         meta.appendChild(uomLine);
 
-        // Inputs: Qty and Price
         var inputs = document.createElement("div");
         inputs.className = "item-inputs";
 
@@ -706,7 +697,6 @@
         container.appendChild(block);
       }
 
-      // Checkbox → qty enable/disable
       var allCheckboxes = container.querySelectorAll("input[type=checkbox]");
       for (var j = 0; j < allCheckboxes.length; j++) {
         allCheckboxes[j].onchange = function () {
@@ -722,7 +712,6 @@
         };
       }
 
-      // Apply prices from master quote if any
       if (customer && customer.items) {
         applyMasterQuoteToTable(customer);
       } else if (CURRENT_CUSTOMER_KEY && CUSTOMER_QUOTES[CURRENT_CUSTOMER_KEY]) {
@@ -730,7 +719,6 @@
       }
     }
 
-    // Search
     function setupItemSearch() {
       var searchInput = document.getElementById("itemSearch");
       if (!searchInput) return;
@@ -743,7 +731,6 @@
         var blocks = container.querySelectorAll(".item-block");
         var dividers = container.querySelectorAll(".items-divider-row");
 
-        // Hide divider while searching
         for (var d = 0; d < dividers.length; d++) {
           dividers[d].style.display = term ? "none" : "";
         }
@@ -880,7 +867,6 @@
         return el ? trimString(el.value || "") : "";
       }
 
-      // Shipping required (except shipAddr2)
       var shipAddr1 = val("shipAddr1");
       var shipCity = val("shipCity");
       var shipState = val("shipState");
@@ -897,7 +883,6 @@
 
       var billingSame = document.getElementById("billingSameAsShipping");
       if (!billingSame || !billingSame.checked) {
-        // Billing required (except billAddr2)
         var billAddr1 = val("billAddr1");
         var billCity = val("billCity");
         var billState = val("billState");
@@ -1414,11 +1399,8 @@
       }
 
       var invalid = false;
-
-      // Table rows for email
       var rowsForTable = [];
 
-      // Ensure CURRENT_CUSTOMER_KEY is set
       var key = normalizeCustomerName(customerName);
       CURRENT_CUSTOMER_KEY = key;
       if (!CUSTOMER_QUOTES[key]) {
@@ -1426,7 +1408,6 @@
       }
       var custQuote = CUSTOMER_QUOTES[key];
 
-      // Build row objects
       for (var i = 0; i < ITEMS.length; i++) {
         var checkbox = document.getElementById("itemCheck_" + i);
         var qtyInput = document.getElementById("itemQty_" + i);
@@ -1464,7 +1445,6 @@
               priceNum: effectivePrice
             });
 
-            // Update master quote
             if (!custQuote.items) {
               custQuote.items = {};
             }
@@ -1498,7 +1478,6 @@
         return;
       }
 
-      // Save updated quotes & refresh master quote view
       CUSTOMER_QUOTES[key] = custQuote;
       safeSaveCustomerQuotes();
       renderMasterQuote(custQuote);
@@ -1506,63 +1485,46 @@
 
       var subject = "Order for " + customerName;
 
-      var body = "New order for customer: " + customerName + "\n\n";
-      body += "Please pick and pack the following:\n\n";
+      // Build HTML email body with a real table
+      var htmlParts = [];
 
-      // Build text table for email
-      var qtyHeader = "Qty";
-      var itemHeader = "Item";
-      var uomHeader = "UOM";
-      var codeHeader = "Code";
-      var priceHeader = "Price";
+      htmlParts.push(
+        "<p>New order for customer: <strong>" +
+        escapeHtml(customerName) +
+        "</strong></p>"
+      );
+      htmlParts.push("<p>Please pick and pack the following:</p>");
 
-      var qtyWidth = qtyHeader.length;
-      var itemWidth = itemHeader.length;
-      var uomWidth = uomHeader.length;
-      var codeWidth = codeHeader.length;
-      var priceWidth = priceHeader.length;
-
-      rowsForTable.forEach(function(r) {
-        qtyWidth = Math.max(qtyWidth, String(r.qty).length);
-        itemWidth = Math.max(itemWidth, String(r.item).length);
-        uomWidth = Math.max(uomWidth, String(r.uom).length);
-        codeWidth = Math.max(codeWidth, String(r.code).length);
-        priceWidth = Math.max(priceWidth, String(r.priceStr).length);
-      });
-
-      var headerLine =
-        padRight(qtyHeader, qtyWidth) + "  " +
-        padRight(itemHeader, itemWidth) + "  " +
-        padRight(uomHeader, uomWidth) + "  " +
-        padRight(codeHeader, codeWidth) + "  " +
-        padRight(priceHeader, priceWidth);
-
-      var sepLine =
-        padRight("".padEnd(qtyWidth, "-"), qtyWidth) + "  " +
-        padRight("".padEnd(itemWidth, "-"), itemWidth) + "  " +
-        padRight("".padEnd(uomWidth, "-"), uomWidth) + "  " +
-        padRight("".padEnd(codeWidth, "-"), codeWidth) + "  " +
-        padRight("".padEnd(priceWidth, "-"), priceWidth);
-
-      var tableLines = [headerLine, sepLine];
+      var tableHtml = '<table border="1" cellpadding="4" cellspacing="0" style="border-collapse:collapse;font-family:system-ui, -apple-system, BlinkMacSystemFont, \'Segoe UI\', sans-serif;font-size:14px;">';
+      tableHtml += "<thead><tr>" +
+        "<th align=\"left\">Qty</th>" +
+        "<th align=\"left\">Item</th>" +
+        "<th align=\"left\">UOM</th>" +
+        "<th align=\"left\">Code</th>" +
+        "<th align=\"left\">Price</th>" +
+        "</tr></thead><tbody>";
 
       rowsForTable.forEach(function(r) {
-        var line =
-          padRight(r.qty, qtyWidth) + "  " +
-          padRight(r.item, itemWidth) + "  " +
-          padRight(r.uom, uomWidth) + "  " +
-          padRight(r.code, codeWidth) + "  " +
-          padRight(r.priceStr, priceWidth);
-        tableLines.push(line);
+        tableHtml += "<tr>" +
+          "<td>" + escapeHtml(r.qty) + "</td>" +
+          "<td>" + escapeHtml(r.item) + "</td>" +
+          "<td>" + escapeHtml(r.uom) + "</td>" +
+          "<td>" + escapeHtml(r.code) + "</td>" +
+          "<td>" + escapeHtml(r.priceStr) + "</td>" +
+          "</tr>";
       });
 
-      body += tableLines.join("\n") + "\n\n";
+      tableHtml += "</tbody></table>";
+      htmlParts.push(tableHtml);
 
       if (shipTo) {
-        body += "Ship To / Notes:\n" + shipTo + "\n\n";
+        htmlParts.push(
+          "<p><strong>Ship To / Notes:</strong><br>" +
+          escapeHtml(shipTo).replace(/\n/g, "<br>") +
+          "</p>"
+        );
       }
 
-      // Account details if checked
       var newCustomerBox = document.getElementById("newCustomer");
       if (newCustomerBox && newCustomerBox.checked) {
         function val2(id) {
@@ -1607,42 +1569,51 @@
         var taxExempt2 = document.getElementById("taxExempt");
         var county2 = val2("county");
 
-        body += "Customer account information:\n\n";
+        var acctHtml = "<h3>Customer account information</h3>";
 
-        body += "Shipping Address:\n";
-        if (sAddr1) body += sAddr1 + "\n";
-        if (sAddr2) body += sAddr2 + "\n";
+        acctHtml += "<p><strong>Shipping Address:</strong><br>";
+        if (sAddr1) acctHtml += escapeHtml(sAddr1) + "<br>";
+        if (sAddr2) acctHtml += escapeHtml(sAddr2) + "<br>";
         if (sCity || sState || sZip) {
-          body += [sCity, sState, sZip].filter(function (p) { return p; }).join(", ") + "\n";
+          acctHtml += escapeHtml(
+            [sCity, sState, sZip].filter(function(p){return p;}).join(", ")
+          ) + "<br>";
         }
-        if (sContactName) body += "Contact Name: " + sContactName + "\n";
-        if (sContactPhone) body += "Contact Phone: " + sContactPhone + "\n";
-        if (sContactEmail) body += "Contact Email: " + sContactEmail + "\n";
-        body += "\n";
+        if (sContactName) acctHtml += "Contact Name: " + escapeHtml(sContactName) + "<br>";
+        if (sContactPhone) acctHtml += "Contact Phone: " + escapeHtml(sContactPhone) + "<br>";
+        if (sContactEmail) acctHtml += "Contact Email: " + escapeHtml(sContactEmail) + "<br>";
+        acctHtml += "</p>";
 
-        body += "Billing Address:\n";
-        if (bAddr1) body += bAddr1 + "\n";
-        if (bAddr2) body += bAddr2 + "\n";
+        acctHtml += "<p><strong>Billing Address:</strong><br>";
+        if (bAddr1) acctHtml += escapeHtml(bAddr1) + "<br>";
+        if (bAddr2) acctHtml += escapeHtml(bAddr2) + "<br>";
         if (bCity || bState || bZip) {
-          body += [bCity, bState, bZip].filter(function (p) { return p; }).join(", ") + "\n";
+          acctHtml += escapeHtml(
+            [bCity, bState, bZip].filter(function(p){return p;}).join(", ")
+          ) + "<br>";
         }
-        if (bContactName) body += "Contact Name (AP): " + bContactName + "\n";
-        if (bContactPhone) body += "Contact Phone (AP): " + bContactPhone + "\n";
-        if (bContactEmail) body += "Contact Email (AP): " + bContactEmail + "\n";
-        body += "\n";
+        if (bContactName) acctHtml += "Contact Name (AP): " + escapeHtml(bContactName) + "<br>";
+        if (bContactPhone) acctHtml += "Contact Phone (AP): " + escapeHtml(bContactPhone) + "<br>";
+        if (bContactEmail) acctHtml += "Contact Email (AP): " + escapeHtml(bContactEmail) + "<br>";
+        acctHtml += "</p>";
 
-        body += "Tax Exempt Status: " + (taxExempt2 && taxExempt2.checked ? "Tax Exempt" : "Taxable") + "\n";
+        acctHtml += "<p><strong>Tax Exempt Status:</strong> " +
+          (taxExempt2 && taxExempt2.checked ? "Tax Exempt" : "Taxable");
         if (!(taxExempt2 && taxExempt2.checked) && county2) {
-          body += "County: " + county2 + "\n";
+          acctHtml += "<br><strong>County:</strong> " + escapeHtml(county2);
         }
-        body += "\n";
+        acctHtml += "</p>";
+
+        htmlParts.push(acctHtml);
       }
 
-      body += "Thank you,\n";
+      htmlParts.push("<p>Thank you,</p>");
+
+      var bodyHtml = "<html><body>" + htmlParts.join("\n") + "</body></html>";
 
       var mailto = "mailto:" + encodeURIComponent(WAREHOUSE_EMAIL)
         + "?subject=" + encodeURIComponent(subject)
-        + "&body=" + encodeURIComponent(body);
+        + "&body=" + encodeURIComponent(bodyHtml);
 
       window.location.href = mailto;
     }
