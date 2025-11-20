@@ -1,6 +1,4 @@
-/* ================================
-   AMS Order Form - Styles
-   ================================ */
+/* Full cleaned and optimized stylesheet for AMS Order Form */
 
 body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -11,10 +9,8 @@ body {
 
 h1 {
   font-size: 1.4rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
-
-/* ---------- Cards / Layout ---------- */
 
 .card {
   background: #ffffff;
@@ -27,46 +23,12 @@ h1 {
 .card-title {
   font-size: 1.1rem;
   margin-top: 0;
-  margin-bottom: 0.5rem;
 }
-
-.subheading {
-  font-weight: 600;
-  font-size: 0.9rem;
-  margin-bottom: 0.4rem;
-}
-
-.note {
-  font-size: 0.8rem;
-  color: #666;
-  margin-bottom: 0.6rem;
-}
-
-/* Two-column layout for customer details */
-.two-column {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.two-column > div {
-  flex: 1 1 260px;
-  min-width: 0;
-}
-
-/* Three inputs in a row (City / State / Zip) */
-.row-3 {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1.5fr;
-  gap: 0.4rem;
-}
-
-/* ---------- Typography / Form ---------- */
 
 label {
   font-size: 0.9rem;
   display: block;
-  margin-bottom: 0.2rem;
+  margin-bottom: 0.3rem;
 }
 
 input[type="text"],
@@ -84,9 +46,29 @@ textarea {
   resize: vertical;
 }
 
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+th, td {
+  padding: 0.4rem;
+  text-align: left;
+}
+
+th {
+  border-bottom: 1px solid #ddd;
+  font-weight: 600;
+}
+
+tr:nth-child(even) {
+  background: #fafafa;
+}
+
 input[type="number"] {
   width: 70px;
-  padding: 0.25rem;
+  padding: 0.2rem;
   border-radius: 6px;
   border: 1px solid #ccc;
   font-size: 0.85rem;
@@ -97,18 +79,6 @@ input[type="number"]:disabled {
   background: #eee;
   color: #888;
 }
-
-/* Inline checkbox label row */
-.inline-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-top: 0.6rem;
-  margin-bottom: 0.3rem;
-  font-size: 0.9rem;
-}
-
-/* ---------- Buttons ---------- */
 
 .btn {
   width: 100%;
@@ -124,7 +94,21 @@ input[type="number"]:disabled {
 }
 
 .btn:active {
-  opacity: 0.85;
+  opacity: 0.8;
+}
+
+.note {
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.inline-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+  margin-bottom: 0.3rem;
+  font-size: 0.9rem;
 }
 
 .small-btn {
@@ -140,35 +124,11 @@ input[type="number"]:disabled {
   opacity: 0.8;
 }
 
-/* ---------- Tables ---------- */
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
-}
-
-th,
-td {
-  padding: 0.4rem;
-  text-align: left;
-}
-
-th {
-  border-bottom: 1px solid #ddd;
-  font-weight: 600;
-}
-
-tr:nth-child(even) {
-  background: #fafafa;
-}
-
-/* Items table header style */
+/* ======= ITEMS TABLE ======= */
 .items-table thead th {
   background: #eef3ff;
 }
 
-/* Divider row between quoted and non-quoted items */
 .items-divider-row td {
   font-size: 0.75rem;
   text-align: center;
@@ -177,104 +137,8 @@ tr:nth-child(even) {
   color: #555;
 }
 
-/* Manage customers table */
-.manage-table th {
-  background: #f3f4f6;
-}
-
-.manage-actions {
-  margin-top: 0.75rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
-/* Checkbox column alignment (desktop + mobile) */
-.items-table td:first-child {
-  width: 32px;
-  text-align: left;
-  padding-right: 0;
-}
-
-/* ---------- Sticky header in Items card ---------- */
-
-.sticky-header {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  background: #ffffff;
-  padding-bottom: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-/* ---------- Customer suggestions dropdown ---------- */
-
-#customerSuggestions {
-  margin-top: 0.25rem;
-  border-radius: 8px;
-  border: 1px solid #ddd;
-  background: #fff;
-  max-height: 180px;
-  overflow-y: auto;
-  display: none;
-  font-size: 0.85rem;
-}
-
-.customer-suggestion {
-  padding: 0.3rem 0.5rem;
-  cursor: pointer;
-}
-
-.customer-suggestion:hover {
-  background: #eef3ff;
-}
-
-/* ================================
-   Manage Customers Overlay (Modal)
-   ================================ */
-
-#manageCustomersOverlay {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  display: none;            /* starts hidden, shown via JS */
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.4);  /* dim rest of screen */
-  z-index: 1000;
-}
-
-/* Panel is a .card, so it already has padding, radius, shadow */
-#manageCustomersPanel {
-  width: 100%;
-  max-width: 900px;
-  max-height: 90vh;
-  overflow: auto;
-  box-sizing: border-box;   /* avoid overflow on the right side */
-}
-
-/* ================================
-   Mobile layout tweaks
-   ================================ */
-
+/* ======= MOBILE LAYOUT (Option B + Qty/Price grouped) ======= */
 @media (max-width: 700px) {
-  .two-column {
-    flex-direction: column;
-  }
-
-  .row-3 {
-    grid-template-columns: 1fr 1fr;
-    grid-auto-rows: auto;
-  }
-
-  .row-3 input:nth-child(3) {
-    grid-column: 1 / span 2;
-  }
-
-  /* Items table: stack rows, hide header */
   .items-table thead {
     display: none;
   }
@@ -292,7 +156,7 @@ tr:nth-child(even) {
     padding: 0.4rem 0;
   }
 
-  /* Checkbox + name on same line in mobile */
+  /* Checkbox + item name on same line */
   .items-table td:first-child,
   .items-table td:nth-child(2) {
     display: inline-block;
@@ -315,7 +179,6 @@ tr:nth-child(even) {
     margin-bottom: 0.3rem;
   }
 
-  /* Code / UOM labels */
   .items-table td:nth-child(3)::before {
     content: "Code: ";
     font-weight: 500;
@@ -337,17 +200,44 @@ tr:nth-child(even) {
 
   .qty-price-group div {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;      /* label + input side by side */
+    align-items: center;      /* vertically centered */
+    gap: 0.5rem;              /* small space between label + input */
     flex: 1;
   }
 
   .qty-price-group label {
     font-size: 0.75rem;
     font-weight: 500;
-    margin-bottom: 0.1rem;
+    margin: 0;                /* remove bottom margin so it aligns horizontally */
+    width: auto;
+    white-space: nowrap;      /* keep 'Qty:' and 'Price:' on one line */
   }
 
   .qty-price-group input[type="number"] {
     width: 100%;
   }
+}
+
+/* ======= MANAGE CUSTOMERS OVERLAY ======= */
+#manageCustomersOverlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: none; /* JS sets this to block when open */
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+}
+
+#manageCustomersPanel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  overflow: auto;
 }
