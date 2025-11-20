@@ -159,6 +159,11 @@ th {
 }
 
 tr:nth-child(even) {
+  background: transparent; /* reset default striping */
+}
+
+/* Apply striping only to the item cells so it matches card padding */
+.items-table tr:nth-child(even) td {
   background: #fafafa;
 }
 
@@ -178,13 +183,10 @@ tr:nth-child(even) {
 /* Items table header style */
 .items-table {
   width: 100%;
-  box-sizing: border-box;
-  border-radius: 12px;       /* keep grey + white rows inside rounded box */
-  overflow: hidden;          /* prevent row backgrounds from spilling out */
-  background: #ffffff;       /* match card background */
-  margin: 0;
-  padding: 0;
+  border-collapse: collapse;
+  font-size: 0.85rem;
 }
+
 
 .items-table thead th {
   background: #eef3ff;
