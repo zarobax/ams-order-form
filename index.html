@@ -62,7 +62,10 @@
       font-weight: 600;
     }
     tr:nth-child(even) {
-      background: #fafafa;
+      background: transparent;
+    }
+    .items-table tbody tr:nth-child(even) {
+      background: #f3f3f3;
     }
     input[type="number"] {
       width: 70px;
@@ -71,6 +74,12 @@
       border: 1px solid #ccc;
       font-size: 0.85rem;
       box-sizing: border-box;
+    }
+    .qty-label,
+    .price-label {
+      margin-right: 0.25rem;
+      font-size: 0.8rem;
+      color: #444;
     }
     input[type="number"]:disabled {
       background: #eee;
@@ -371,11 +380,12 @@
           <th>Item</th>
           <th>Code</th>
           <th>UOM</th>
-          <th>Qty / Price</th>
+          <th>Qty</th>
+          <th>Price</th>
         </tr>
       </thead>
       <tbody id="itemsTableBody">
-        <tr><td colspan="5">If you can see this, JavaScript did not run.</td></tr>
+        <tr><td colspan="6">If you can see this, JavaScript did not run.</td></tr>
       </tbody>
     </table>
   </div>
@@ -608,24 +618,32 @@
         var uomCell = document.createElement("td");
         uomCell.textContent = item.uom || "";
 
-        // Qty input
+        // Qty input with label
         var qtyCell = document.createElement("td");
+        var qtyLabel = document.createElement("span");
+        qtyLabel.className = "qty-label";
+        qtyLabel.textContent = "Qty:";
         var qtyInput = document.createElement("input");
         qtyInput.type = "number";
         qtyInput.min = "1";
         qtyInput.step = "1";
         qtyInput.disabled = true;
         qtyInput.id = "itemQty_" + i;
+        qtyCell.appendChild(qtyLabel);
         qtyCell.appendChild(qtyInput);
 
-        // Price input (per customer)
+        // Price input with label (per customer)
         var priceCell = document.createElement("td");
+        var priceLabel = document.createElement("span");
+        priceLabel.className = "price-label";
+        priceLabel.textContent = "Price:";
         var priceInput = document.createElement("input");
         priceInput.type = "number";
         priceInput.min = "0";
         priceInput.step = "0.01";
         priceInput.inputMode = "decimal";
         priceInput.id = "itemPrice_" + i;
+        priceCell.appendChild(priceLabel);
         priceCell.appendChild(priceInput);
 
         row.appendChild(checkCell);
