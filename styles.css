@@ -361,8 +361,8 @@ tr:nth-child(even) {
   }
 
   .qty-price-group input[type="number"] {
-    width: 40px;          /* smaller width */
-    max-width: 40px;      /* enforce limit */
-    flex: 0 0 40px;        /* prevent any stretching */
+    width: 32px;          /* tighter width */
+    max-width: 32px;      /* enforce limit */
+    flex: 0 0 32px;        /* prevent stretching */
   }
 }
