@@ -2,147 +2,119 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>AMS Order Form</title>
+  <title>AMS Order From</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <link rel="stylesheet" href="styles.css" />
+  <!-- PWA manifest + iOS support -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#007aff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
+  <!-- External styles -->
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>AMS Order Form</h1>
 
-  <!-- ============ CUSTOMER / ACCOUNT SECTION ============ -->
+  <h1>AMS Order From</h1>
+
   <div class="card">
-    <h2 class="card-title">Customer</h2>
     <label for="customerName">Customer Name</label>
-    <input type="text" id="customerName" autocomplete="off" />
-
+    <input id="customerName" type="text" placeholder="e.g. ABC Trucking" />
     <div id="customerSuggestions"></div>
 
-    <div class="inline-checkbox">
-      <input type="checkbox" id="newCustomer" />
-      <label for="newCustomer">New customer (include account setup info)</label>
+    <div style="margin-top:0.3rem;">
+      <button type="button" class="small-btn" onclick="openManageCustomers()">
+        Manage customers
+      </button>
     </div>
 
-    <div id="newCustomerDetails" style="display:none; margin-top:0.5rem;">
+    <label for="shipTo" style="margin-top:0.6rem;">Ship To / Notes (optional)</label>
+    <textarea id="shipTo" placeholder="Address, special instructions, etc."></textarea>
+
+    <!-- New customer checkbox -->
+    <div class="inline-checkbox">
+      <input type="checkbox" id="newCustomer" />
+      <label for="newCustomer" style="margin:0;">Include account details (new customer)</label>
+    </div>
+
+    <!-- Customer details (for warehouse email only; not saved) -->
+    <div id="newCustomerDetails" style="display:none; margin-top:0.75rem;">
       <div class="two-column">
-        <!-- Shipping -->
+        <!-- Shipping Address -->
         <div>
-          <div class="subheading">Shipping Information</div>
-
-          <label for="shipAddr1">Address Line 1</label>
+          <div class="subheading">Shipping Address</div>
+          <label for="shipAddr1">Address Line 1 *</label>
           <input type="text" id="shipAddr1" />
-
-          <label for="shipAddr2">Address Line 2</label>
+          <label for="shipAddr2">Address Line 2 (optional)</label>
           <input type="text" id="shipAddr2" />
 
-          <label>City / State / Zip</label>
+          <label>City, State, Zip *</label>
           <div class="row-3">
             <input type="text" id="shipCity" placeholder="City" />
             <input type="text" id="shipState" placeholder="State" />
             <input type="text" id="shipZip" placeholder="Zip" />
           </div>
 
-          <label for="shipContactName" style="margin-top:0.4rem;">Contact Name</label>
-          <input type="text" id="shipContactName" />
-
-          <label for="shipContactPhone">Contact Phone</label>
-          <input type="text" id="shipContactPhone" />
-
-          <label for="shipContactEmail">Contact Email</label>
-          <input type="text" id="shipContactEmail" />
+          <label>Contact info *</label>
+          <input type="text" id="shipContactName" placeholder="Contact Name" />
+          <input type="text" id="shipContactPhone" placeholder="Contact Phone Number" />
+          <input type="text" id="shipContactEmail" placeholder="Contact Email" />
         </div>
 
-        <!-- Billing -->
+        <!-- Billing Address -->
         <div>
-          <div class="subheading">Billing Information</div>
+          <div class="subheading">Billing Address</div>
 
-          <div class="inline-checkbox">
+          <div class="inline-checkbox" style="margin-top:0;">
             <input type="checkbox" id="billingSameAsShipping" />
-            <label for="billingSameAsShipping">Billing same as shipping</label>
+            <label for="billingSameAsShipping" style="margin:0;">Billing same as shipping</label>
           </div>
 
-          <label for="billAddr1">Address Line 1</label>
+          <label for="billAddr1">Address Line 1 *</label>
           <input type="text" id="billAddr1" />
-
-          <label for="billAddr2">Address Line 2</label>
+          <label for="billAddr2">Address Line 2 (optional)</label>
           <input type="text" id="billAddr2" />
 
-          <label>City / State / Zip</label>
+          <label>City, State, Zip *</label>
           <div class="row-3">
             <input type="text" id="billCity" placeholder="City" />
             <input type="text" id="billState" placeholder="State" />
             <input type="text" id="billZip" placeholder="Zip" />
           </div>
 
-          <label for="billContactName" style="margin-top:0.4rem;">Contact Name (AP)</label>
-          <input type="text" id="billContactName" />
-
-          <label for="billContactPhone">Contact Phone (AP)</label>
-          <input type="text" id="billContactPhone" />
-
-          <label for="billContactEmail">Contact Email (AP)</label>
-          <input type="text" id="billContactEmail" />
+          <label>Contact Info (for AP) *</label>
+          <input type="text" id="billContactName" placeholder="Contact Name" />
+          <input type="text" id="billContactPhone" placeholder="Contact Phone Number" />
+          <input type="text" id="billContactEmail" placeholder="Contact Email" />
         </div>
       </div>
 
-      <div class="inline-checkbox" style="margin-top:0.75rem;">
-        <input type="checkbox" id="taxExempt" />
-        <label for="taxExempt">Customer is tax-exempt</label>
-      </div>
+      <!-- Tax / County -->
+      <div style="margin-top:0.75rem;">
+        <div class="inline-checkbox">
+          <input type="checkbox" id="taxExempt" />
+          <label for="taxExempt" style="margin:0;">Customer is tax exempt</label>
+        </div>
 
-      <div id="countyRow" style="margin-top:0.4rem;">
-        <label for="county">County (for taxable customers)</label>
-        <input type="text" id="county" />
+        <div id="countyRow" style="margin-top:0.4rem;">
+          <label for="county">County (only if not tax exempt) *</label>
+          <input type="text" id="county" />
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- ============ SHIP TO / NOTES ============ -->
-  <div class="card">
-    <h2 class="card-title">Ship To / Notes</h2>
-    <label for="shipTo">Instructions or ship-to notes for warehouse</label>
-    <textarea id="shipTo"></textarea>
-  </div>
-
-  <!-- ============ ITEMS SECTION ============ -->
-  <div class="card">
-    <div class="sticky-header">
-      <h2 class="card-title" style="margin-bottom:0.25rem;">Items</h2>
-      <div class="note">
-        Search by item name, code, or UOM. Previously purchased items appear at the top.
-      </div>
-      <label for="itemSearch">Search items</label>
-      <input type="text" id="itemSearch" placeholder="Start typing to filter items..." />
-    </div>
-
-    <div class="items-table-wrapper">
-      <table class="items-table" id="itemsTable">
-        <thead>
-          <tr>
-            <th>✔</th>
-            <th>Item</th>
-            <th>Code</th>
-            <th>UOM</th>
-            <th>Qty / Price</th>
-          </tr>
-        </thead>
-        <tbody id="itemsTableBody">
-          <tr><td colspan="5">If you can see this, JavaScript did not run.</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- ============ MASTER QUOTE ============ -->
+  <!-- Master quote right above item list -->
   <div class="card" id="masterQuoteCard" style="display:none;">
-    <h2 class="card-title">Stored Pricing (Master Quote)</h2>
-    <div id="masterQuoteNote" class="note"></div>
-    <table class="items-table">
+    <h2 style="font-size:1.1rem;margin-top:0;">Master Quote</h2>
+    <p class="note" id="masterQuoteNote"></p>
+    <table>
       <thead>
         <tr>
           <th>Item</th>
           <th>Code</th>
-          <th>UOM</th>
           <th>Price</th>
         </tr>
       </thead>
@@ -150,66 +122,110 @@
     </table>
   </div>
 
-  <!-- ============ ACTIONS ============ -->
   <div class="card">
-    <button class="btn" type="button" onclick="generateEmail()">Generate Email</button>
+    <h2 style="font-size:1.1rem;margin-top:0;">Items</h2>
+    <p class="note">Check the items being ordered and enter quantities.</p>
 
-    <div class="manage-actions" style="margin-top:0.75rem;">
-      <button class="small-btn" type="button" onclick="openManageCustomers()">Manage Customers</button>
-      <button class="small-btn" type="button" onclick="exportCustomerData()">Export Customer Data</button>
+    <!-- Sticky header area -->
+    <div class="sticky-header">
+      <button class="btn" style="margin-top:0;" onclick="generateEmail()">
+        Generate Email
+      </button>
 
-      <label class="small-btn" style="display:inline-flex; align-items:center; gap:0.3rem; cursor:pointer;">
-        Import Customer Data
-        <input type="file" id="importFile" accept=".json" style="display:none;">
-      </label>
+      <!-- Search bar -->
+      <label for="itemSearch" style="margin-top:0.6rem;">Search items</label>
+      <input
+        id="itemSearch"
+        type="text"
+        placeholder="Type to filter by name, code, or UOM"
+        style="margin-bottom:0.3rem;"
+      />
     </div>
+
+    <!-- Items table: now wired to .items-table styles -->
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th>✔</th>
+          <th>Item</th>
+          <th>Code</th>
+          <th>UOM</th>
+          <th>Qty</th>
+          <th>Price</th>
+        </tr>
+      </thead>
+      <tbody id="itemsTableBody">
+        <tr><td colspan="6">If you can see this, JavaScript did not run.</td></tr>
+      </tbody>
+    </table>
   </div>
 
-  <!-- ============ MANAGE CUSTOMERS OVERLAY ============ -->
+  <!-- Manage customers overlay -->
   <div id="manageCustomersOverlay">
-    <div id="manageCustomersPanel">
-      <h2 class="card-title">Manage Customers</h2>
-      <p class="note">Edit or delete saved customer master quotes.</p>
-
+    <div class="card" id="manageCustomersPanel">
+      <h2 style="font-size:1.1rem;margin-top:0;">Manage customers</h2>
+      <p class="note">
+        View or remove saved customers and their master quotes. To update pricing,
+        select a customer on the main screen and adjust prices there, or use Edit
+        below. Changes save when you generate an order or when you click Save here.
+      </p>
       <table class="manage-table">
         <thead>
           <tr>
             <th>Customer</th>
-            <th># of Items</th>
-            <th>Actions</th>
+            <th style="width:70px;">Items</th>
+            <th style="width:140px;">Actions</th>
           </tr>
         </thead>
         <tbody id="manageCustomersBody">
-          <tr><td colspan="3">No customers saved yet.</td></tr>
+          <!-- filled by JS -->
         </tbody>
       </table>
 
-      <div id="editCustomerSection" style="display:none; margin-top:1rem;">
-        <h3 class="subheading">Edit Master Quote for <span id="editCustomerName"></span></h3>
-        <table class="items-table">
+      <!-- Editable master quote section -->
+      <div id="editCustomerSection" style="display:none;">
+        <h3>Edit master quote for <span id="editCustomerName"></span></h3>
+        <table class="manage-table">
           <thead>
             <tr>
               <th>Item</th>
               <th>Code</th>
               <th>Price</th>
-              <th></th>
+              <th style="width:70px;">Remove</th>
             </tr>
           </thead>
-          <tbody id="editCustomerBody"></tbody>
+          <tbody id="editCustomerBody">
+            <!-- rows added by JS -->
+          </tbody>
         </table>
-
         <div class="manage-actions">
-          <button class="small-btn" type="button" onclick="saveEditedCustomerQuote()">Save Changes</button>
-          <button class="small-btn" type="button" onclick="cancelEditCustomer()">Cancel</button>
+          <button type="button" class="small-btn" onclick="saveEditedCustomerQuote()">
+            Save
+          </button>
+          <button type="button" class="small-btn" onclick="cancelEditCustomer()">
+            Cancel
+          </button>
         </div>
       </div>
 
-      <div class="manage-actions" style="margin-top:1rem;">
-        <button class="small-btn" type="button" onclick="closeManageCustomers()">Close</button>
+      <div class="manage-actions">
+        <button type="button" class="small-btn" onclick="exportCustomerData()">
+          Export
+        </button>
+        <button type="button" class="small-btn" onclick="document.getElementById('importFile').click();">
+          Import
+        </button>
+        <button type="button" class="small-btn" onclick="closeManageCustomers()">
+          Close
+        </button>
       </div>
+
+      <input type="file" id="importFile" accept="application/json,.json" style="display:none;">
     </div>
   </div>
 
+  <!-- External JS -->
   <script src="app.js"></script>
+
 </body>
 </html>
