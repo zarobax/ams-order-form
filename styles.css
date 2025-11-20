@@ -1,4 +1,6 @@
-/* Full cleaned and optimized stylesheet for AMS Order Form */
+/* ================================
+   AMS Order Form - Styles
+   ================================ */
 
 body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -9,8 +11,10 @@ body {
 
 h1 {
   font-size: 1.4rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
 }
+
+/* ---------- Cards / Layout ---------- */
 
 .card {
   background: #ffffff;
@@ -23,12 +27,46 @@ h1 {
 .card-title {
   font-size: 1.1rem;
   margin-top: 0;
+  margin-bottom: 0.5rem;
 }
+
+.subheading {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 0.4rem;
+}
+
+.note {
+  font-size: 0.8rem;
+  color: #666;
+  margin-bottom: 0.6rem;
+}
+
+/* Two-column layout for customer details */
+.two-column {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.two-column > div {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+/* Three inputs in a row (City / State / Zip) */
+.row-3 {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1.5fr;
+  gap: 0.4rem;
+}
+
+/* ---------- Typography / Form ---------- */
 
 label {
   font-size: 0.9rem;
   display: block;
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.2rem;
 }
 
 input[type="text"],
@@ -46,29 +84,9 @@ textarea {
   resize: vertical;
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.85rem;
-}
-
-th, td {
-  padding: 0.4rem;
-  text-align: left;
-}
-
-th {
-  border-bottom: 1px solid #ddd;
-  font-weight: 600;
-}
-
-tr:nth-child(even) {
-  background: #fafafa;
-}
-
 input[type="number"] {
   width: 70px;
-  padding: 0.2rem;
+  padding: 0.25rem;
   border-radius: 6px;
   border: 1px solid #ccc;
   font-size: 0.85rem;
@@ -79,6 +97,18 @@ input[type="number"]:disabled {
   background: #eee;
   color: #888;
 }
+
+/* Inline checkbox label row */
+.inline-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+  margin-bottom: 0.3rem;
+  font-size: 0.9rem;
+}
+
+/* ---------- Buttons ---------- */
 
 .btn {
   width: 100%;
@@ -94,21 +124,7 @@ input[type="number"]:disabled {
 }
 
 .btn:active {
-  opacity: 0.8;
-}
-
-.note {
-  font-size: 0.8rem;
-  color: #666;
-}
-
-.inline-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-top: 0.6rem;
-  margin-bottom: 0.3rem;
-  font-size: 0.9rem;
+  opacity: 0.85;
 }
 
 .small-btn {
@@ -124,7 +140,30 @@ input[type="number"]:disabled {
   opacity: 0.8;
 }
 
-/* ======= ITEMS TABLE ======= */
+/* ---------- Tables ---------- */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+th,
+td {
+  padding: 0.4rem;
+  text-align: left;
+}
+
+th {
+  border-bottom: 1px solid #ddd;
+  font-weight: 600;
+}
+
+tr:nth-child(even) {
+  background: #fafafa;
+}
+
+/* Items table header style */
 .items-table thead th {
   background: #eef3ff;
 }
@@ -137,8 +176,96 @@ input[type="number"]:disabled {
   color: #555;
 }
 
-/* ======= MOBILE LAYOUT (Option B + Qty/Price grouped) ======= */
+/* Manage customers table */
+.manage-table th {
+  background: #f3f4f6;
+}
+
+.manage-actions {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+/* ---------- Sticky header in Items card ---------- */
+
+.sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #ffffff;
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* ---------- Customer suggestions dropdown ---------- */
+
+#customerSuggestions {
+  margin-top: 0.25rem;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: #fff;
+  max-height: 180px;
+  overflow-y: auto;
+  display: none;
+  font-size: 0.85rem;
+}
+
+.customer-suggestion {
+  padding: 0.3rem 0.5rem;
+  cursor: pointer;
+}
+
+.customer-suggestion:hover {
+  background: #eef3ff;
+}
+
+/* ================================
+   Manage Customers Overlay (Modal)
+   ================================ */
+
+#manageCustomersOverlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: none;            /* starts hidden */
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.4);  /* dim rest of screen */
+  z-index: 1000;
+}
+
+/* Panel already has .card styling from HTML */
+#manageCustomersPanel {
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  overflow: auto;
+}
+
+/* ================================
+   Mobile layout tweaks
+   ================================ */
+
 @media (max-width: 700px) {
+  .two-column {
+    flex-direction: column;
+  }
+
+  .row-3 {
+    grid-template-columns: 1fr 1fr;
+    grid-auto-rows: auto;
+  }
+
+  .row-3 input:nth-child(3) {
+    grid-column: 1 / span 2;
+  }
+
+  /* Items table: stack rows, hide header */
   .items-table thead {
     display: none;
   }
@@ -156,7 +283,7 @@ input[type="number"]:disabled {
     padding: 0.4rem 0;
   }
 
-  /* Checkbox + item name on same line */
+  /* Checkbox + name on same line */
   .items-table td:first-child,
   .items-table td:nth-child(2) {
     display: inline-block;
@@ -179,6 +306,7 @@ input[type="number"]:disabled {
     margin-bottom: 0.3rem;
   }
 
+  /* Code / UOM labels */
   .items-table td:nth-child(3)::before {
     content: "Code: ";
     font-weight: 500;
@@ -213,27 +341,4 @@ input[type="number"]:disabled {
   .qty-price-group input[type="number"] {
     width: 100%;
   }
-}
-
-/* ======= MANAGE CUSTOMERS OVERLAY ======= */
-#manageCustomersOverlay {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  display: none; /* JS sets this to block when open */
-  background: rgba(0, 0, 0, 0.4);
-  z-index: 1000;
-}
-
-#manageCustomersPanel {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 100%;
-  max-width: 900px;
-  max-height: 90vh;
-  overflow: auto;
 }
