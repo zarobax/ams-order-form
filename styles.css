@@ -159,10 +159,10 @@ th {
 }
 
 tr:nth-child(even) {
-  background: transparent; /* reset default striping */
+  background: transparent; /* no global striping */
 }
 
-/* Apply striping only to the item cells so it matches card padding */
+/* Zebra striping for the items list: full-row grey background */
 .items-table tbody tr:nth-child(even) {
   background: #fafafa;
 }
