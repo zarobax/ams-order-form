@@ -267,10 +267,97 @@ tr:nth-child(even) {
    ================================ */
 
 @media (max-width: 700px) {
-  /* stack two-column sections */
-  .two-column {
-    flex-direction: column;
+  /* stack layout */
+  .two-column { flex-direction: column; }
+  .row-3 { grid-template-columns: 1fr 1fr; grid-auto-rows: auto; }
+  .row-3 input:nth-child(3) { grid-column: 1 / span 2; }
+
+  /* Hide header */
+  .items-table thead { display: none; }
+
+  .items-table, .items-table tbody, .items-table tr, .items-table td {
+    width: 100%;
   }
+
+  .items-table tr {
+    display: flex;               /* <-- force row items horizontally */
+    align-items: center;
+    flex-wrap: wrap;             /* allow wrapping for Code/UOM/Qty/Price */
+    border-bottom: 1px solid #eee;
+    padding: 0.4rem 0;
+    gap: 0.3rem;
+  }
+
+  /* Checkbox column */
+  .items-table td:first-child {
+    order: 1;
+    width: auto;
+    flex: 0 0 auto;
+    display: flex !important;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  .items-table td:first-child input[type="checkbox"] {
+    transform: scale(1.2);
+    margin: 0;
+  }
+
+  /* Item name */
+  .items-table td:nth-child(2) {
+    order: 2;
+    flex: 1 1 auto;
+    font-weight: 600;
+    font-size: 1rem;
+  }
+
+  /* Code label */
+  .items-table td:nth-child(3) {
+    order: 3;
+    flex: 1 1 100%;
+  }
+  .items-table td:nth-child(3)::before {
+    content: "Code: ";
+    font-weight: 500;
+  }
+
+  /* UOM label */
+  .items-table td:nth-child(4) {
+    order: 4;
+    flex: 1 1 100%;
+  }
+  .items-table td:nth-child(4)::before {
+    content: "UOM: ";
+    font-weight: 500;
+  }
+
+  /* Qty + Price */
+  .items-table td:nth-child(5) {
+    order: 5;
+    flex: 1 1 100%;
+  }
+  .qty-price-group {
+    display: flex !important;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.3rem;
+  }
+  .qty-price-group div {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+  }
+  .qty-price-group label {
+    margin: 0;
+    white-space: nowrap;
+  }
+  .qty-price-group input[type="number"] {
+    width: 100%;
+  }
+}
 
   .row-3 {
     grid-template-columns: 1fr 1fr;
