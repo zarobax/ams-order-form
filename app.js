@@ -48,12 +48,7 @@ function safeLoadCustomerQuotes() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
     const data = JSON.parse(raw);
-    if (
-      data &&
-      typeof data === "object" &&
-      data.customers &&
-      typeof data.customers === "object"
-    ) {
+    if (data && typeof data === "object" && data.customers && typeof data.customers === "object") {
       CUSTOMER_QUOTES = data.customers;
       return;
     }
@@ -71,7 +66,7 @@ function safeSaveCustomerQuotes() {
     const wrapper = {
       type: "ams_customer_db",
       version: 1,
-      customers: CUSTOMER_QUOTES,
+      customers: CUSTOMER_QUOTES
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(wrapper));
   } catch (e) {
@@ -88,7 +83,7 @@ function buildItemsTable(customer) {
 
   const indices = ITEMS.map((_, i) => i);
 
-  const quoteMap = customer && customer.items ? customer.items : null;
+  const quoteMap = (customer && customer.items) ? customer.items : null;
 
   indices.sort((a, b) => {
     const ia = ITEMS[a] || {};
@@ -119,7 +114,7 @@ function buildItemsTable(customer) {
   let seenQuoted = false;
   let dividerInserted = false;
 
-  indices.forEach((i) => {
+  indices.forEach(i => {
     const item = ITEMS[i];
     if (!item) return;
 
@@ -130,7 +125,7 @@ function buildItemsTable(customer) {
       const divRow = document.createElement("tr");
       divRow.className = "items-divider-row";
       const divCell = document.createElement("td");
-      divCell.colSpan = 5; // checkbox, name, code, uom, qty+price
+      divCell.colSpan = 5;
       divCell.textContent = "Previously Purchased";
       divRow.appendChild(divCell);
       tbody.appendChild(divRow);
@@ -163,53 +158,57 @@ function buildItemsTable(customer) {
     const uomCell = document.createElement("td");
     uomCell.textContent = item.uom || "";
 
-    // Combined Qty + Price cell
-    const qpCell = document.createElement("td");
-    qpCell.className = "qty-price-group";
+    // Qty + Price group (single cell)
+    const qtyPriceCell = document.createElement("td");
+    const group = document.createElement("div");
+    group.className = "qty-price-group";
 
-    // Qty group
-    const qtyGroup = document.createElement("div");
+    // Qty part
+    const qtyWrap = document.createElement("div");
     const qtyLabel = document.createElement("label");
     qtyLabel.textContent = "Qty:";
-    qtyLabel.style.margin = "0";
+    qtyLabel.setAttribute("for", "itemQty_" + i);
     const qtyInput = document.createElement("input");
     qtyInput.type = "number";
     qtyInput.min = "1";
     qtyInput.step = "1";
     qtyInput.disabled = true;
     qtyInput.id = "itemQty_" + i;
-    qtyGroup.appendChild(qtyLabel);
-    qtyGroup.appendChild(qtyInput);
 
-    // Price group
-    const priceGroup = document.createElement("div");
+    qtyWrap.appendChild(qtyLabel);
+    qtyWrap.appendChild(qtyInput);
+
+    // Price part
+    const priceWrap = document.createElement("div");
     const priceLabel = document.createElement("label");
     priceLabel.textContent = "Price:";
-    priceLabel.style.margin = "0";
+    priceLabel.setAttribute("for", "itemPrice_" + i);
     const priceInput = document.createElement("input");
     priceInput.type = "number";
     priceInput.min = "0";
     priceInput.step = "0.01";
     priceInput.inputMode = "decimal";
     priceInput.id = "itemPrice_" + i;
-    priceGroup.appendChild(priceLabel);
-    priceGroup.appendChild(priceInput);
 
-    qpCell.appendChild(qtyGroup);
-    qpCell.appendChild(priceGroup);
+    priceWrap.appendChild(priceLabel);
+    priceWrap.appendChild(priceInput);
+
+    group.appendChild(qtyWrap);
+    group.appendChild(priceWrap);
+    qtyPriceCell.appendChild(group);
 
     row.appendChild(checkCell);
     row.appendChild(nameCell);
     row.appendChild(codeCell);
     row.appendChild(uomCell);
-    row.appendChild(qpCell);
+    row.appendChild(qtyPriceCell);
 
     tbody.appendChild(row);
   });
 
   // Checkbox → qty enable/disable
   const allCheckboxes = tbody.querySelectorAll("input[type=checkbox]");
-  allCheckboxes.forEach((cb) => {
+  allCheckboxes.forEach(cb => {
     cb.onchange = function () {
       const qtyId = this.getAttribute("data-qty-id");
       const input = document.getElementById(qtyId);
@@ -242,16 +241,14 @@ function applyMasterQuoteToTable(customer) {
     if (row.classList.contains("items-divider-row")) continue;
     const cells = row.getElementsByTagName("td");
     if (cells.length < 5) continue;
-    const code = (cells[2].textContent || "").trim(); // code column
+    const code = (cells[2].textContent || "").trim();
     if (!code) continue;
     const itemQuote = customer.items[code];
     if (!itemQuote) continue;
-
-    // Price input is second number input inside qty-price-group cell (5th cell)
-    const numInputs = cells[4].querySelectorAll("input[type=number]");
-    if (numInputs.length >= 2) {
-      const priceInput = numInputs[1];
-      priceInput.value = itemQuote.price != null ? itemQuote.price : "";
+    const qtyPriceCell = cells[4];
+    const priceInput = qtyPriceCell.querySelector("#itemPrice_" + i);
+    if (priceInput) {
+      priceInput.value = (itemQuote.price != null ? itemQuote.price : "");
     }
   }
 }
@@ -271,12 +268,11 @@ function renderMasterQuote(cust) {
   }
 
   card.style.display = "block";
-  note.textContent =
-    "Pricing stored for " + (cust.displayName || "this customer") + ".";
+  note.textContent = "Pricing stored for " + (cust.displayName || "this customer") + ".";
   tbody.innerHTML = "";
 
   const codes = Object.keys(cust.items).sort();
-  codes.forEach((code) => {
+  codes.forEach(code => {
     const it = cust.items[code];
     const row = document.createElement("tr");
 
@@ -291,9 +287,7 @@ function renderMasterQuote(cust) {
 
     const priceCell = document.createElement("td");
     priceCell.textContent =
-      it.price != null && it.price !== ""
-        ? "$" + Number(it.price).toFixed(2)
-        : "";
+      (it.price != null && it.price !== "") ? ("$" + Number(it.price).toFixed(2)) : "";
 
     row.appendChild(nameCell);
     row.appendChild(codeCell);
@@ -317,7 +311,7 @@ function updateCustomerSuggestions(query) {
   }
 
   const matches = [];
-  Object.keys(CUSTOMER_QUOTES).forEach((key) => {
+  Object.keys(CUSTOMER_QUOTES).forEach(key => {
     const c = CUSTOMER_QUOTES[key];
     const name = (c.displayName || key || "").toLowerCase();
     if (name.indexOf(term) !== -1) {
@@ -338,7 +332,7 @@ function updateCustomerSuggestions(query) {
     return 0;
   });
 
-  matches.forEach((m) => {
+  matches.forEach(m => {
     const div = document.createElement("div");
     div.className = "customer-suggestion";
     div.textContent = m.displayName;
@@ -403,12 +397,14 @@ function setupItemSearch() {
         continue;
       }
 
-      const nameCell = row.cells[1];
-      const codeCell = row.cells[2];
-      const uomCell = row.cells[3];
+      const cells = row.getElementsByTagName("td");
+      if (cells.length < 5) continue;
+      const nameCell = cells[1];
+      const codeCell = cells[2];
+      const uomCell = cells[3];
       if (!nameCell || !uomCell) continue;
 
-      const nameText = nameCell.textContent.toLowerCase();
+      const nameText = (nameCell.textContent || "").toLowerCase();
       const codeText = (codeCell.textContent || "").toLowerCase();
       const uomText = (uomCell.textContent || "").toLowerCase();
 
@@ -462,17 +458,8 @@ function setupNewCustomerSection() {
     const billContactPhone = document.getElementById("billContactPhone");
     const billContactEmail = document.getElementById("billContactEmail");
 
-    if (
-      !billAddr1 ||
-      !billAddr2 ||
-      !billCity ||
-      !billState ||
-      !billZip ||
-      !billContactName ||
-      !billContactPhone ||
-      !billContactEmail
-    )
-      return;
+    if (!billAddr1 || !billAddr2 || !billCity || !billState || !billZip ||
+        !billContactName || !billContactPhone || !billContactEmail) return;
 
     if (billingSame && billingSame.checked) {
       billAddr1.value = shipAddr1.value;
@@ -525,15 +512,7 @@ function validateNewCustomerDetails() {
   const sContactPhone = val("shipContactPhone");
   const sContactEmail = val("shipContactEmail");
 
-  if (
-    !sAddr1 ||
-    !sCity ||
-    !sState ||
-    !sZip ||
-    !sContactName ||
-    !sContactPhone ||
-    !sContactEmail
-  ) {
+  if (!sAddr1 || !sCity || !sState || !sZip || !sContactName || !sContactPhone || !sContactEmail) {
     alert("Please fill in all required shipping fields for the new customer.");
     return false;
   }
@@ -547,15 +526,7 @@ function validateNewCustomerDetails() {
     const bContactName = val("billContactName");
     const bContactPhone = val("billContactPhone");
     const bContactEmail = val("billContactEmail");
-    if (
-      !bAddr1 ||
-      !bCity ||
-      !bState ||
-      !bZip ||
-      !bContactName ||
-      !bContactPhone ||
-      !bContactEmail
-    ) {
+    if (!bAddr1 || !bCity || !bState || !bZip || !bContactName || !bContactPhone || !bContactEmail) {
       alert("Please fill in all required billing fields for the new customer.");
       return false;
     }
@@ -592,14 +563,12 @@ function generateEmail() {
     return;
   }
 
-  const shipTo = trimString(
-    (document.getElementById("shipTo").value || "")
-  );
+  const shipTo = trimString((document.getElementById("shipTo").value || ""));
 
   const lines = [];
   const custQuote = {
     displayName: customerName,
-    items: {},
+    items: {}
   };
 
   for (let i = 0; i < ITEMS.length; i++) {
@@ -645,7 +614,7 @@ function generateEmail() {
         name,
         uom,
         code,
-        price: priceInput && priceInput.value !== "" ? price : "",
+        price: (priceInput && priceInput.value !== "") ? price : ""
       };
     }
   }
@@ -680,9 +649,7 @@ function generateEmail() {
       return el ? trimString(el.value || "") : "";
     }
 
-    const billingSame2 = document.getElementById(
-      "billingSameAsShipping"
-    );
+    const billingSame2 = document.getElementById("billingSameAsShipping");
 
     // Shipping
     const sAddr1 = val2("shipAddr1");
@@ -727,7 +694,7 @@ function generateEmail() {
     if (sAddr1) body += sAddr1 + "\n";
     if (sAddr2) body += sAddr2 + "\n";
     if (sCity || sState || sZip) {
-      body += [sCity, sState, sZip].filter((p) => p).join(", ") + "\n";
+      body += [sCity, sState, sZip].filter(p => p).join(", ") + "\n";
     }
     if (sContactName) body += "Contact Name: " + sContactName + "\n";
     if (sContactPhone) body += "Contact Phone: " + sContactPhone + "\n";
@@ -738,35 +705,25 @@ function generateEmail() {
     if (bAddr1) body += bAddr1 + "\n";
     if (bAddr2) body += bAddr2 + "\n";
     if (bCity || bState || bZip) {
-      body += [bCity, bState, bZip].filter((p) => p).join(", ") + "\n";
+      body += [bCity, bState, bZip].filter(p => p).join(", ") + "\n";
     }
-    if (bContactName)
-      body += "Contact Name (AP): " + bContactName + "\n";
-    if (bContactPhone)
-      body += "Contact Phone (AP): " + bContactPhone + "\n";
-    if (bContactEmail)
-      body += "Contact Email (AP): " + bContactEmail + "\n";
+    if (bContactName) body += "Contact Name (AP): " + bContactName + "\n";
+    if (bContactPhone) body += "Contact Phone (AP): " + bContactPhone + "\n";
+    if (bContactEmail) body += "Contact Email (AP): " + bContactEmail + "\n";
     body += "\n";
 
-    body +=
-      "Tax Exempt Status: " +
-      (taxExempt2 && taxExempt2.checked ? "Tax Exempt" : "Taxable") +
-      "\n";
+    body += "Tax Exempt Status: " + (taxExempt2 && taxExempt2.checked ? "Tax Exempt" : "Taxable") + "\n";
     if (!(taxExempt2 && taxExempt2.checked) && county2) {
       body += "County: " + county2 + "\n";
     }
     body += "\n";
   }
 
-  body += "Thank you,\n";
+  body += "Thank you,\n" + COMPANY_NAME + "\n";
 
-  const mailto =
-    "mailto:" +
-    encodeURIComponent(WAREHOUSE_EMAIL) +
-    "?subject=" +
-    encodeURIComponent(subject) +
-    "&body=" +
-    encodeURIComponent(body);
+  const mailto = "mailto:" + encodeURIComponent(WAREHOUSE_EMAIL)
+    + "?subject=" + encodeURIComponent(subject)
+    + "&body=" + encodeURIComponent(body);
 
   window.location.href = mailto;
 }
@@ -778,11 +735,9 @@ function exportCustomerData() {
     const data = {
       type: "ams_customer_db",
       version: 1,
-      customers: CUSTOMER_QUOTES,
+      customers: CUSTOMER_QUOTES
     };
-    const blob = new Blob([JSON.stringify(data, null, 2)], {
-      type: "application/json",
-    });
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -847,7 +802,7 @@ function openManageCustomers() {
   if (!overlay) return;
   buildManageCustomersTable();
   hideEditCustomerSection();
-  overlay.style.display = "flex";   // use flex for centering
+  overlay.style.display = "flex";
 }
 
 function closeManageCustomers() {
@@ -887,7 +842,7 @@ function buildManageCustomersTable() {
     return;
   }
 
-  keys.forEach((key) => {
+  keys.forEach(key => {
     const cust = CUSTOMER_QUOTES[key];
     const row = document.createElement("tr");
 
@@ -914,11 +869,7 @@ function buildManageCustomersTable() {
     delBtn.className = "small-btn";
     delBtn.textContent = "Delete";
     delBtn.onclick = function () {
-      if (
-        confirm(
-          `Delete customer "${cust.displayName || key}" and all stored pricing?`
-        )
-      ) {
+      if (confirm(`Delete customer "${cust.displayName || key}" and all stored pricing?`)) {
         delete CUSTOMER_QUOTES[key];
         safeSaveCustomerQuotes();
         buildManageCustomersTable();
@@ -959,7 +910,7 @@ function openEditCustomer(key) {
   tbody.innerHTML = "";
 
   const codes = Object.keys(cust.items).sort();
-  codes.forEach((code) => {
+  codes.forEach(code => {
     const it = cust.items[code];
     const row = document.createElement("tr");
 
@@ -975,7 +926,7 @@ function openEditCustomer(key) {
     input.min = "0";
     input.step = "0.01";
     input.inputMode = "decimal";
-    input.value = it.price != null && it.price !== "" ? it.price : "";
+    input.value = (it.price != null && it.price !== "") ? it.price : "";
     priceCell.appendChild(input);
 
     const removeCell = document.createElement("td");
@@ -1019,7 +970,7 @@ function saveEditedCustomerQuote() {
       name,
       code,
       uom: (cust.items[code] && cust.items[code].uom) || "",
-      price,
+      price
     };
   }
 
@@ -1072,20 +1023,17 @@ function loadItemsAndInit() {
 
   if (typeof fetch === "function") {
     fetch("items.json")
-      .then((response) => response.json())
-      .then((data) => {
-        if (Object.prototype.toString.call(data) === "[object Array]") {
+      .then(response => response.json())
+      .then(data => {
+        if (Array.isArray(data)) {
           ITEMS = data;
         } else {
-          console.log(
-            "items.json did not contain an array; using empty list."
-          );
           ITEMS = [];
         }
         initPage();
       })
-      .catch((error) => {
-        console.log("Error loading items.json:", error);
+      .catch(err => {
+        console.log("Could not load items.json:", err);
         ITEMS = [];
         initPage();
       });
@@ -1101,11 +1049,10 @@ if (document.readyState === "loading") {
   loadItemsAndInit();
 }
 
-// Optional PWA service worker
+// Register service worker (optional PWA)
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker
-    .register("service-worker.js")
-    .catch((err) => {
+  navigator.serviceWorker.register("service-worker.js")
+    .catch(function (err) {
       console.log("Service worker registration failed:", err);
     });
 }
