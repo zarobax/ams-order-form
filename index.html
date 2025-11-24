@@ -491,8 +491,7 @@
 
   <script>
     // === CONFIGURE THESE ===
-    var WAREHOUSE_EMAIL = "amssupply@outlook.com"; // main warehouse email
-    var WAREHOUSE_CC = ""; // optional: e.g. "you@yourcompany.com, other@company.com"
+    var WAREHOUSE_EMAIL = "amssupply@outlook.com";
     var COMPANY_NAME = "AMS Supply";
     var STORAGE_KEY = "ams_customer_quotes_v1"; // wrapper with .customers
     // =======================
@@ -1401,7 +1400,6 @@
 
       var invalid = false;
       var rowsForTable = [];
-      var orderSubtotal = 0; // NEW: running subtotal
 
       var key = normalizeCustomerName(customerName);
       CURRENT_CUSTOMER_KEY = key;
@@ -1428,37 +1426,15 @@
             var priceNum = priceRaw ? Number(priceRaw) : NaN;
 
             var storedPrice = null;
-            if (
-              custQuote &&
-              custQuote.items &&
-              codeText &&
-              custQuote.items[codeText] &&
-              typeof custQuote.items[codeText].price === "number"
-            ) {
+            if (custQuote && custQuote.items && codeText && custQuote.items[codeText] &&
+                typeof custQuote.items[codeText].price === "number") {
               storedPrice = custQuote.items[codeText].price;
             }
 
-            var effectivePrice =
-              !isNaN(priceNum) && priceNum > 0 ? priceNum : storedPrice;
-            var priceStr =
-              effectivePrice != null && !isNaN(effectivePrice)
-                ? "$" + effectivePrice.toFixed(2)
-                : "";
-
-            // NEW: line total calculation
-            var lineTotalNum =
-              effectivePrice != null &&
-              !isNaN(effectivePrice) &&
-              !isNaN(qtyNum)
-                ? effectivePrice * qtyNum
-                : NaN;
-            var lineTotalStr = !isNaN(lineTotalNum)
-              ? "$" + lineTotalNum.toFixed(2)
+            var effectivePrice = (!isNaN(priceNum) && priceNum > 0) ? priceNum : storedPrice;
+            var priceStr = (effectivePrice != null && !isNaN(effectivePrice))
+              ? "$" + effectivePrice.toFixed(2)
               : "";
-
-            if (!isNaN(lineTotalNum)) {
-              orderSubtotal += lineTotalNum;
-            }
 
             rowsForTable.push({
               qty: qty,
@@ -1466,9 +1442,7 @@
               uom: uomText,
               code: codeText,
               priceStr: priceStr,
-              priceNum: effectivePrice,
-              lineTotalStr: lineTotalStr,
-              lineTotalNum: lineTotalNum
+              priceNum: effectivePrice
             });
 
             if (!custQuote.items) {
@@ -1480,10 +1454,7 @@
                 name: displayName,
                 uom: uomText,
                 code: codeText,
-                price:
-                  effectivePrice != null && !isNaN(effectivePrice)
-                    ? effectivePrice
-                    : undefined
+                price: (effectivePrice != null && !isNaN(effectivePrice)) ? effectivePrice : undefined
               };
             } else {
               if (!isNaN(priceNum) && priceNum > 0) {
@@ -1514,72 +1485,43 @@
 
       var subject = "Order for " + customerName;
 
-      // Build HTML email body with a real table + line totals + subtotal
+      // Build HTML email body with a real table
       var htmlParts = [];
 
       htmlParts.push(
         "<p>New order for customer: <strong>" +
-          escapeHtml(customerName) +
-          "</strong></p>"
+        escapeHtml(customerName) +
+        "</strong></p>"
       );
       htmlParts.push("<p>Please pick and pack the following:</p>");
 
-      var tableHtml =
-        '<table border="1" cellpadding="4" cellspacing="0" style="border-collapse:collapse;font-family:system-ui, -apple-system, BlinkMacSystemFont, \'Segoe UI\', sans-serif;font-size:14px;">';
-      tableHtml +=
-        "<thead><tr>" +
-        '<th align="left">Qty</th>' +
-        '<th align="left">Item</th>' +
-        '<th align="left">UOM</th>' +
-        '<th align="left">Code</th>' +
-        '<th align="left">Price</th>' +
-        '<th align="left">Line total</th>' +
+      var tableHtml = '<table border="1" cellpadding="4" cellspacing="0" style="border-collapse:collapse;font-family:system-ui, -apple-system, BlinkMacSystemFont, \'Segoe UI\', sans-serif;font-size:14px;">';
+      tableHtml += "<thead><tr>" +
+        "<th align=\"left\">Qty</th>" +
+        "<th align=\"left\">Item</th>" +
+        "<th align=\"left\">UOM</th>" +
+        "<th align=\"left\">Code</th>" +
+        "<th align=\"left\">Price</th>" +
         "</tr></thead><tbody>";
 
-      rowsForTable.forEach(function (r) {
-        tableHtml +=
-          "<tr>" +
-          "<td>" +
-          escapeHtml(r.qty) +
-          "</td>" +
-          "<td>" +
-          escapeHtml(r.item) +
-          "</td>" +
-          "<td>" +
-          escapeHtml(r.uom) +
-          "</td>" +
-          "<td>" +
-          escapeHtml(r.code) +
-          "</td>" +
-          "<td>" +
-          escapeHtml(r.priceStr) +
-          "</td>" +
-          "<td>" +
-          escapeHtml(r.lineTotalStr) +
-          "</td>" +
+      rowsForTable.forEach(function(r) {
+        tableHtml += "<tr>" +
+          "<td>" + escapeHtml(r.qty) + "</td>" +
+          "<td>" + escapeHtml(r.item) + "</td>" +
+          "<td>" + escapeHtml(r.uom) + "</td>" +
+          "<td>" + escapeHtml(r.code) + "</td>" +
+          "<td>" + escapeHtml(r.priceStr) + "</td>" +
           "</tr>";
       });
 
-      tableHtml += "</tbody>";
-
-      if (orderSubtotal > 0) {
-        tableHtml +=
-          "<tfoot><tr>" +
-          '<td colspan="5" align="right"><strong>Subtotal:</strong></td>' +
-          "<td><strong>$" +
-          orderSubtotal.toFixed(2) +
-          "</strong></td>" +
-          "</tr></tfoot>";
-      }
-
-      tableHtml += "</table>";
+      tableHtml += "</tbody></table>";
       htmlParts.push(tableHtml);
 
       if (shipTo) {
         htmlParts.push(
           "<p><strong>Ship To / Notes:</strong><br>" +
-            escapeHtml(shipTo).replace(/\n/g, "<br>") +
-            "</p>"
+          escapeHtml(shipTo).replace(/\n/g, "<br>") +
+          "</p>"
         );
       }
 
@@ -1633,14 +1575,9 @@
         if (sAddr1) acctHtml += escapeHtml(sAddr1) + "<br>";
         if (sAddr2) acctHtml += escapeHtml(sAddr2) + "<br>";
         if (sCity || sState || sZip) {
-          acctHtml +=
-            escapeHtml(
-              [sCity, sState, sZip]
-                .filter(function (p) {
-                  return p;
-                })
-                .join(", ")
-            ) + "<br>";
+          acctHtml += escapeHtml(
+            [sCity, sState, sZip].filter(function(p){return p;}).join(", ")
+          ) + "<br>";
         }
         if (sContactName) acctHtml += "Contact Name: " + escapeHtml(sContactName) + "<br>";
         if (sContactPhone) acctHtml += "Contact Phone: " + escapeHtml(sContactPhone) + "<br>";
@@ -1651,28 +1588,16 @@
         if (bAddr1) acctHtml += escapeHtml(bAddr1) + "<br>";
         if (bAddr2) acctHtml += escapeHtml(bAddr2) + "<br>";
         if (bCity || bState || bZip) {
-          acctHtml +=
-            escapeHtml(
-              [bCity, bState, bZip]
-                .filter(function (p) {
-                  return p;
-                })
-                .join(", ")
-            ) + "<br>";
+          acctHtml += escapeHtml(
+            [bCity, bState, bZip].filter(function(p){return p;}).join(", ")
+          ) + "<br>";
         }
-        if (bContactName)
-          acctHtml +=
-            "Contact Name (AP): " + escapeHtml(bContactName) + "<br>";
-        if (bContactPhone)
-          acctHtml +=
-            "Contact Phone (AP): " + escapeHtml(bContactPhone) + "<br>";
-        if (bContactEmail)
-          acctHtml +=
-            "Contact Email (AP): " + escapeHtml(bContactEmail) + "<br>";
+        if (bContactName) acctHtml += "Contact Name (AP): " + escapeHtml(bContactName) + "<br>";
+        if (bContactPhone) acctHtml += "Contact Phone (AP): " + escapeHtml(bContactPhone) + "<br>";
+        if (bContactEmail) acctHtml += "Contact Email (AP): " + escapeHtml(bContactEmail) + "<br>";
         acctHtml += "</p>";
 
-        acctHtml +=
-          "<p><strong>Tax Exempt Status:</strong> " +
+        acctHtml += "<p><strong>Tax Exempt Status:</strong> " +
           (taxExempt2 && taxExempt2.checked ? "Tax Exempt" : "Taxable");
         if (!(taxExempt2 && taxExempt2.checked) && county2) {
           acctHtml += "<br><strong>County:</strong> " + escapeHtml(county2);
@@ -1686,19 +1611,9 @@
 
       var bodyHtml = "<html><body>" + htmlParts.join("\n") + "</body></html>";
 
-      // Build mailto with optional CC
-      var params =
-        "subject=" +
-        encodeURIComponent(subject) +
-        "&body=" +
-        encodeURIComponent(bodyHtml);
-
-      if (WAREHOUSE_CC && trimString(WAREHOUSE_CC)) {
-        params += "&cc=" + encodeURIComponent(trimString(WAREHOUSE_CC));
-      }
-
-      var mailto =
-        "mailto:" + encodeURIComponent(WAREHOUSE_EMAIL || "") + "?" + params;
+      var mailto = "mailto:" + encodeURIComponent(WAREHOUSE_EMAIL)
+        + "?subject=" + encodeURIComponent(subject)
+        + "&body=" + encodeURIComponent(bodyHtml);
 
       window.location.href = mailto;
     }
