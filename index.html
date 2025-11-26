@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>AMS Order From</title>
+  <title>AMS Order Form</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <!-- PWA manifest + iOS support -->
@@ -16,7 +16,7 @@
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       margin: 0;
-      padding: 1rem;
+      padding: 0;
       background: #f5f5f7;
     }
     h1 {
@@ -283,211 +283,317 @@
     .item-inputs input[type="number"] {
       width: 80px;
     }
+
+    /* Lean iframe-friendly layout */
+    .page-shell {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0.75rem;
+    }
+
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .top-bar h1 {
+      margin: 0;
+      font-size: 1.2rem;
+    }
+
+    .login-card {
+      max-width: 400px;
+      margin: 4vh auto 1rem auto;
+    }
+
+    .login-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .login-subtitle {
+      font-size: 0.85rem;
+      color: #666;
+      margin-bottom: 0.75rem;
+    }
+
+    .login-footer {
+      margin-top: 0.75rem;
+      font-size: 0.75rem;
+      color: #888;
+      text-align: center;
+    }
+
+    .login-row {
+      margin-bottom: 0.6rem;
+    }
+
+    .login-row label {
+      margin-bottom: 0.2rem;
+    }
+
+    .btn-small-inline {
+      display: inline-block;
+      padding: 0.4rem 0.9rem;
+      border-radius: 999px;
+      border: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      background: #007aff;
+      color: #fff;
+    }
   </style>
 </head>
 <body>
+  <div class="page-shell">
 
-  <h1>AMS Order From</h1>
-
-  <div class="card">
-    <label for="customerName">Customer Name</label>
-    <input id="customerName" type="text" placeholder="e.g. ABC Trucking" />
-    <div id="customerSuggestions"></div>
-
-    <div style="margin-top:0.3rem;">
-      <button type="button" class="small-btn" onclick="openManageCustomers()">
-        Manage customers
-      </button>
+    <!-- Top bar -->
+    <div class="top-bar">
+      <h1>AMS Order Form</h1>
+      <div id="userInfo" style="font-size:0.8rem;color:#666;display:none;">
+        Signed in as <span id="userNameLabel"></span>
+      </div>
     </div>
 
-    <label for="shipTo" style="margin-top:0.6rem;">Ship To / Notes (optional)</label>
-    <textarea id="shipTo" placeholder="Address, special instructions, etc."></textarea>
-
-    <!-- New customer checkbox -->
-    <div class="inline-checkbox">
-      <input type="checkbox" id="newCustomer" />
-      <label for="newCustomer" style="margin:0;">Include account details (new customer)</label>
-    </div>
-
-    <!-- Customer details (for warehouse email only; not saved) -->
-    <div id="newCustomerDetails" style="display:none; margin-top:0.75rem;">
-      <div class="two-column">
-        <!-- Shipping Address -->
-        <div>
-          <div class="subheading">Shipping Address</div>
-          <label for="shipAddr1">Address Line 1 *</label>
-          <input type="text" id="shipAddr1" />
-          <label for="shipAddr2">Address Line 2 (optional)</label>
-          <input type="text" id="shipAddr2" />
-
-          <label>City, State, Zip *</label>
-          <div class="row-3">
-            <input type="text" id="shipCity" placeholder="City" />
-            <input type="text" id="shipState" placeholder="State" />
-            <input type="text" id="shipZip" placeholder="Zip" />
-          </div>
-
-          <label>Contact info *</label>
-          <input type="text" id="shipContactName" placeholder="Contact Name" />
-          <input type="text" id="shipContactPhone" placeholder="Contact Phone Number" />
-          <input type="text" id="shipContactEmail" placeholder="Contact Email" />
-        </div>
-
-        <!-- Billing Address -->
-        <div>
-          <div class="subheading">Billing Address</div>
-
-          <div class="inline-checkbox" style="margin-top:0;">
-            <input type="checkbox" id="billingSameAsShipping" />
-            <label for="billingSameAsShipping" style="margin:0;">Billing same as shipping</label>
-          </div>
-
-          <label for="billAddr1">Address Line 1 *</label>
-          <input type="text" id="billAddr1" />
-          <label for="billAddr2">Address Line 2 (optional)</label>
-          <input type="text" id="billAddr2" />
-
-          <label>City, State, Zip *</label>
-          <div class="row-3">
-            <input type="text" id="billCity" placeholder="City" />
-            <input type="text" id="billState" placeholder="State" />
-            <input type="text" id="billZip" placeholder="Zip" />
-          </div>
-
-          <label>Contact Info (for AP) *</label>
-          <input type="text" id="billContactName" placeholder="Contact Name" />
-          <input type="text" id="billContactPhone" placeholder="Contact Phone Number" />
-          <input type="text" id="billContactEmail" placeholder="Contact Email" />
-        </div>
+    <!-- Login screen -->
+    <div id="loginScreen" class="card login-card">
+      <div class="login-title">Sign in to AMS Order Tool</div>
+      <div class="login-subtitle">
+        Use your work email and password. Once signed in, you'll only see the
+        customers assigned to you.
       </div>
 
-      <!-- Tax / County -->
-      <div style="margin-top:0.75rem;">
+      <form id="loginForm">
+        <div class="login-row">
+          <label for="loginEmail">Email</label>
+          <input id="loginEmail" type="text" placeholder="you@company.com" />
+        </div>
+
+        <div class="login-row">
+          <label for="loginPassword">Password</label>
+          <input id="loginPassword" type="password" placeholder="••••••••" />
+        </div>
+
+        <button type="submit" class="btn-small-inline" style="margin-top:0.5rem;">
+          Sign in
+        </button>
+
+        <div class="login-footer">
+          Having trouble signing in? Contact the office for help.
+        </div>
+      </form>
+    </div>
+
+    <!-- Main app (hidden until "login") -->
+    <div id="orderApp" style="display:none;">
+
+      <div class="card">
+        <label for="customerName">Customer Name</label>
+        <input id="customerName" type="text" placeholder="e.g. ABC Trucking" />
+        <div id="customerSuggestions"></div>
+
+        <div style="margin-top:0.3rem;">
+          <button type="button" class="small-btn" onclick="openManageCustomers()">
+            Manage customers
+          </button>
+        </div>
+
+        <label for="shipTo" style="margin-top:0.6rem;">Ship To / Notes (optional)</label>
+        <textarea id="shipTo" placeholder="Address, special instructions, etc."></textarea>
+
+        <!-- New customer checkbox -->
         <div class="inline-checkbox">
-          <input type="checkbox" id="taxExempt" />
-          <label for="taxExempt" style="margin:0;">Customer is tax exempt</label>
+          <input type="checkbox" id="newCustomer" />
+          <label for="newCustomer" style="margin:0;">Include account details (new customer)</label>
         </div>
 
-        <div id="countyRow" style="margin-top:0.4rem;">
-          <label for="county">County (only if not tax exempt) *</label>
-          <input type="text" id="county" />
+        <!-- Customer details (for warehouse email only; not saved) -->
+        <div id="newCustomerDetails" style="display:none; margin-top:0.75rem;">
+          <div class="two-column">
+            <!-- Shipping Address -->
+            <div>
+              <div class="subheading">Shipping Address</div>
+              <label for="shipAddr1">Address Line 1 *</label>
+              <input type="text" id="shipAddr1" />
+              <label for="shipAddr2">Address Line 2 (optional)</label>
+              <input type="text" id="shipAddr2" />
+
+              <label>City, State, Zip *</label>
+              <div class="row-3">
+                <input type="text" id="shipCity" placeholder="City" />
+                <input type="text" id="shipState" placeholder="State" />
+                <input type="text" id="shipZip" placeholder="Zip" />
+              </div>
+
+              <label>Contact info *</label>
+              <input type="text" id="shipContactName" placeholder="Contact Name" />
+              <input type="text" id="shipContactPhone" placeholder="Contact Phone Number" />
+              <input type="text" id="shipContactEmail" placeholder="Contact Email" />
+            </div>
+
+            <!-- Billing Address -->
+            <div>
+              <div class="subheading">Billing Address</div>
+
+              <div class="inline-checkbox" style="margin-top:0;">
+                <input type="checkbox" id="billingSameAsShipping" />
+                <label for="billingSameAsShipping" style="margin:0;">Billing same as shipping</label>
+              </div>
+
+              <label for="billAddr1">Address Line 1 *</label>
+              <input type="text" id="billAddr1" />
+              <label for="billAddr2">Address Line 2 (optional)</label>
+              <input type="text" id="billAddr2" />
+
+              <label>City, State, Zip *</label>
+              <div class="row-3">
+                <input type="text" id="billCity" placeholder="City" />
+                <input type="text" id="billState" placeholder="State" />
+                <input type="text" id="billZip" placeholder="Zip" />
+              </div>
+
+              <label>Contact Info (for AP) *</label>
+              <input type="text" id="billContactName" placeholder="Contact Name" />
+              <input type="text" id="billContactPhone" placeholder="Contact Phone Number" />
+              <input type="text" id="billContactEmail" placeholder="Contact Email" />
+            </div>
+          </div>
+
+          <!-- Tax / County -->
+          <div style="margin-top:0.75rem;">
+            <div class="inline-checkbox">
+              <input type="checkbox" id="taxExempt" />
+              <label for="taxExempt" style="margin:0;">Customer is tax exempt</label>
+            </div>
+
+            <div id="countyRow" style="margin-top:0.4rem;">
+              <label for="county">County (only if not tax exempt) *</label>
+              <input type="text" id="county" />
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Master quote right above item list -->
-  <div class="card" id="masterQuoteCard" style="display:none;">
-    <h2 style="font-size:1.1rem;margin-top:0;">Master Quote</h2>
-    <p class="note" id="masterQuoteNote"></p>
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>Item</th>
-            <th>Code</th>
-            <th>Price</th>
-          </tr>
-        </thead>
-        <tbody id="masterQuoteBody"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="card">
-    <h2 style="font-size:1.1rem;margin-top:0;">Items</h2>
-    <p class="note">Check the items being ordered and enter quantities.</p>
-
-    <!-- Sticky header area -->
-    <div class="sticky-header">
-      <button class="btn" style="margin-top:0;" onclick="generateEmail()">
-        Generate Email
-      </button>
-
-      <!-- Search bar -->
-      <label for="itemSearch" style="margin-top:0.6rem;">Search items</label>
-      <input
-        id="itemSearch"
-        type="text"
-        placeholder="Type to filter by name, code, or UOM"
-        style="margin-bottom:0.3rem;"
-      />
-    </div>
-
-    <!-- Stacked item list -->
-    <div id="itemsContainer">
-      <!-- JS fills with .item-block elements -->
-    </div>
-  </div>
-
-  <!-- Manage customers overlay -->
-  <div id="manageCustomersOverlay">
-    <div class="card" id="manageCustomersPanel">
-      <h2 style="font-size:1.1rem;margin-top:0;">Manage customers</h2>
-      <p class="note">
-        View or remove saved customers and their master quotes. To update pricing,
-        select a customer on the main screen and adjust prices there, or use Edit
-        below. Changes save when you generate an order or when you click Save here.
-      </p>
-
-      <div class="table-container">
-        <table class="manage-table">
-          <thead>
-            <tr>
-              <th>Customer</th>
-              <th style="width:70px;">Items</th>
-              <th style="width:140px;">Actions</th>
-            </tr>
-          </thead>
-          <tbody id="manageCustomersBody">
-            <!-- filled by JS -->
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Editable master quote section -->
-      <div id="editCustomerSection" style="display:none;">
-        <h3>Edit master quote for <span id="editCustomerName"></span></h3>
+      <!-- Master quote right above item list -->
+      <div class="card" id="masterQuoteCard" style="display:none;">
+        <h2 style="font-size:1.1rem;margin-top:0;">Master Quote</h2>
+        <p class="note" id="masterQuoteNote"></p>
         <div class="table-container">
-          <table class="manage-table">
+          <table>
             <thead>
               <tr>
                 <th>Item</th>
                 <th>Code</th>
                 <th>Price</th>
-                <th style="width:70px;">Remove</th>
               </tr>
             </thead>
-            <tbody id="editCustomerBody">
-              <!-- rows added by JS -->
-            </tbody>
+            <tbody id="masterQuoteBody"></tbody>
           </table>
         </div>
-        <div class="manage-actions">
-          <button type="button" class="small-btn" onclick="saveEditedCustomerQuote()">
-            Save
+      </div>
+
+      <div class="card">
+        <h2 style="font-size:1.1rem;margin-top:0;">Items</h2>
+        <p class="note">Check the items being ordered and enter quantities.</p>
+
+        <!-- Sticky header area -->
+        <div class="sticky-header">
+          <button class="btn" style="margin-top:0;" onclick="generateEmail()">
+            Generate Email
           </button>
-          <button type="button" class="small-btn" onclick="cancelEditCustomer()">
-            Cancel
-          </button>
+
+          <!-- Search bar -->
+          <label for="itemSearch" style="margin-top:0.6rem;">Search items</label>
+          <input
+            id="itemSearch"
+            type="text"
+            placeholder="Type to filter by name, code, or UOM"
+            style="margin-bottom:0.3rem;"
+          />
+        </div>
+
+        <!-- Stacked item list -->
+        <div id="itemsContainer">
+          <!-- JS fills with .item-block elements -->
         </div>
       </div>
 
-      <div class="manage-actions">
-        <button type="button" class="small-btn" onclick="exportCustomerData()">
-          Export
-        </button>
-        <button type="button" class="small-btn" onclick="document.getElementById('importFile').click();">
-          Import
-        </button>
-        <button type="button" class="small-btn" onclick="closeManageCustomers()">
-          Close
-        </button>
+      <!-- Manage customers overlay -->
+      <div id="manageCustomersOverlay">
+        <div class="card" id="manageCustomersPanel">
+          <h2 style="font-size:1.1rem;margin-top:0;">Manage customers</h2>
+          <p class="note">
+            View or remove saved customers and their master quotes. To update pricing,
+            select a customer on the main screen and adjust prices there, or use Edit
+            below. Changes save when you generate an order or when you click Save here.
+          </p>
+
+          <div class="table-container">
+            <table class="manage-table">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th style="width:70px;">Items</th>
+                  <th style="width:140px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="manageCustomersBody">
+                <!-- filled by JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Editable master quote section -->
+          <div id="editCustomerSection" style="display:none;">
+            <h3>Edit master quote for <span id="editCustomerName"></span></h3>
+            <div class="table-container">
+              <table class="manage-table">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Code</th>
+                    <th>Price</th>
+                    <th style="width:70px;">Remove</th>
+                  </tr>
+                </thead>
+                <tbody id="editCustomerBody">
+                  <!-- rows added by JS -->
+                </tbody>
+              </table>
+            </div>
+            <div class="manage-actions">
+              <button type="button" class="small-btn" onclick="saveEditedCustomerQuote()">
+                Save
+              </button>
+              <button type="button" class="small-btn" onclick="cancelEditCustomer()">
+                Cancel
+              </button>
+            </div>
+          </div>
+
+          <div class="manage-actions">
+            <button type="button" class="small-btn" onclick="exportCustomerData()">
+              Export
+            </button>
+            <button type="button" class="small-btn" onclick="document.getElementById('importFile').click();">
+              Import
+            </button>
+            <button type="button" class="small-btn" onclick="closeManageCustomers()">
+              Close
+            </button>
+          </div>
+
+          <input type="file" id="importFile" accept="application/json,.json" style="display:none;">
+        </div>
       </div>
 
-      <input type="file" id="importFile" accept="application/json,.json" style="display:none;">
-    </div>
-  </div>
+    </div> <!-- /#orderApp -->
+  </div> <!-- /.page-shell -->
 
   <script>
     // === CONFIGURE THESE ===
@@ -913,7 +1019,7 @@
       if (!cust || !cust.items) return;
       for (var i = 0; i < ITEMS.length; i++) {
         var code = ITEMS[i].code || "";
-        if (!code) continue;
+               if (!code) continue;
         var entry = cust.items[code];
         if (!entry || typeof entry.price !== "number") continue;
         var priceInput = document.getElementById("itemPrice_" + i);
@@ -1698,19 +1804,58 @@
       }
     }
 
-    if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", loadItemsAndInit);
-    } else {
-      loadItemsAndInit();
+    // ---- NEW: simple front-end login wiring ----
+    function initLoginUI() {
+      var loginForm = document.getElementById("loginForm");
+      var loginScreen = document.getElementById("loginScreen");
+      var app = document.getElementById("orderApp");
+      var userInfo = document.getElementById("userInfo");
+      var userNameLabel = document.getElementById("userNameLabel");
+
+      if (!loginForm || !loginScreen || !app) return;
+
+      loginForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        var emailEl = document.getElementById("loginEmail");
+        var passEl = document.getElementById("loginPassword");
+        var email = (emailEl && emailEl.value || "").trim();
+        var password = (passEl && passEl.value || "").trim();
+
+        if (!email || !password) {
+          alert("Please enter both email and password.");
+          return;
+        }
+
+        // TODO: replace this with a real API call later.
+        // For now, just pretend login succeeded.
+        loginScreen.style.display = "none";
+        app.style.display = "block";
+
+        if (userInfo && userNameLabel) {
+          userNameLabel.textContent = email;
+          userInfo.style.display = "block";
+        }
+      });
     }
 
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("service-worker.js")
-        .catch(function (err) {
-          console.log("Service worker registration failed:", err);
-        });
+    function initAll() {
+      initLoginUI();
+      loadItemsAndInit();
+
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("service-worker.js")
+          .catch(function (err) {
+            console.log("Service worker registration failed:", err);
+          });
+      }
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initAll);
+    } else {
+      initAll();
     }
   </script>
-
 </body>
 </html>
