@@ -1,0 +1,2736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AMS Order Form</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- PWA manifest + iOS support -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#007aff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f5f7;
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin-bottom: 0.5rem;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      margin-bottom: 1rem;
+    }
+    label {
+      font-size: 0.9rem;
+      display: block;
+      margin-bottom: 0.3rem;
+    }
+    input[type="text"],
+    textarea {
+      width: 100%;
+      padding: 0.5rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 0.9rem;
+      box-sizing: border-box;
+    }
+    textarea {
+      min-height: 60px;
+      resize: vertical;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    th, td {
+      padding: 0.4rem;
+      text-align: left;
+    }
+    th {
+      border-bottom: 1px solid #ddd;
+      font-weight: 600;
+    }
+    tr:nth-child(even) {
+      background: #fafafa;
+    }
+    input[type="number"] {
+      width: 70px;
+      padding: 0.2rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 0.85rem;
+      box-sizing: border-box;
+    }
+    input[type="number"]:disabled {
+      background: #eee;
+      color: #888;
+    }
+    .btn {
+      width: 100%;
+      padding: 0.8rem;
+      border: none;
+      border-radius: 999px;
+      font-size: 1rem;
+      font-weight: 600;
+      margin-top: 0.5rem;
+      cursor: pointer;
+      background: #007aff;
+      color: white;
+    }
+    .btn:active {
+      opacity: 0.8;
+    }
+    .note {
+      font-size: 0.8rem;
+      color: #666;
+    }
+    .inline-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-top: 0.6rem;
+      margin-bottom: 0.3rem;
+      font-size: 0.9rem;
+    }
+    .two-column {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+    @media (min-width: 600px) {
+      .two-column {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    .subheading {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin: 0.4rem 0 0.2rem 0;
+    }
+    .row-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    /* Sticky header for items card */
+    .sticky-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: #ffffff;
+      padding-bottom: 0.5rem;
+      margin-bottom: 0.5rem;
+      border-bottom: 1px solid #eee;
+    }
+
+    /* Master quote card */
+    #masterQuoteCard table th,
+    #masterQuoteCard table td {
+      font-size: 0.8rem;
+    }
+
+    /* Customer name suggestions */
+    #customerSuggestions {
+      margin-top: 0.25rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      background: #ffffff;
+      max-height: 180px;
+      overflow-y: auto;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+      display: none;
+      font-size: 0.9rem;
+    }
+    .customer-suggestion {
+      padding: 0.35rem 0.5rem;
+      cursor: pointer;
+    }
+    .customer-suggestion + .customer-suggestion {
+      border-top: 1px solid #eee;
+    }
+    .customer-suggestion:hover {
+      background: #f5f5f7;
+    }
+
+    /* Small / link-style button */
+    .small-btn {
+      display: inline-block;
+      padding: 0.35rem 0.7rem;
+      font-size: 0.8rem;
+      border-radius: 999px;
+      border: 1px solid #ccc;
+      background: #f8f8f8;
+      color: #333;
+      cursor: pointer;
+    }
+    .small-btn:active {
+      opacity: 0.8;
+    }
+
+    /* Manage customers overlay */
+    #manageCustomersOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.2);
+      display: none; /* flex when open */
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+    }
+    #manageCustomersPanel {
+      max-width: 480px;
+      width: 94%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .manage-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+    }
+    .manage-table th,
+    .manage-table td {
+      padding: 0.35rem 0.4rem;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+    .manage-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      flex-wrap: wrap;
+    }
+    /* Edit master quote section */
+    #editCustomerSection h3 {
+      font-size: 0.95rem;
+      margin: 0.75rem 0 0.25rem 0;
+    }
+    #editCustomerSection .manage-table th,
+    #editCustomerSection .manage-table td {
+      font-size: 0.8rem;
+    }
+    #editCustomerSection input[type="number"] {
+      width: 80px;
+    }
+
+    /* Divider row for items */
+    .items-divider-row {
+      font-size: 0.75rem;
+      text-align: center;
+      font-style: italic;
+      background: #eef3ff;
+      color: #555;
+      padding: 0.25rem 0.5rem;
+      border-radius: 8px;
+      margin: 0.4rem 0;
+    }
+
+    /* Responsive table container (for master + manage tables) */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Stacked item layout */
+    #itemsContainer {
+      margin-top: 0.5rem;
+    }
+    .item-block {
+      border-bottom: 1px solid #eee;
+      padding: 0.6rem 0;
+    }
+    .item-header {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-weight: 600;
+      margin-bottom: 0.2rem;
+      font-size: 0.9rem;
+    }
+    .item-meta {
+      font-size: 0.8rem;
+      color: #555;
+      margin-bottom: 0.3rem;
+    }
+    .item-meta-line {
+      margin: 0.05rem 0;
+    }
+    .item-inputs {
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .item-inputs span {
+      margin-right: 0.15rem;
+    }
+    .item-inputs input[type="number"] {
+      width: 80px;
+    }
+
+    /* Lean iframe-friendly layout */
+    .page-shell {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0.75rem;
+    }
+
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .top-bar h1 {
+      margin: 0;
+      font-size: 1.2rem;
+    }
+
+    .login-card {
+      max-width: 400px;
+      margin: 4vh auto 1rem auto;
+    }
+
+    .login-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .login-subtitle {
+      font-size: 0.85rem;
+      color: #666;
+      margin-bottom: 0.75rem;
+    }
+
+    .login-footer {
+      margin-top: 0.75rem;
+      font-size: 0.75rem;
+      color: #888;
+      text-align: center;
+    }
+
+    .login-row {
+      margin-bottom: 0.6rem;
+    }
+
+    .login-row label {
+      margin-bottom: 0.2rem;
+    }
+
+    .btn-small-inline {
+      display: inline-block;
+      padding: 0.4rem 0.9rem;
+      border-radius: 999px;
+      border: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      background: #007aff;
+      color: #fff;
+    }
+
+    .section-heading {
+      font-size: 1.1rem;
+      margin-top: 0;
+      margin-bottom: 0.35rem;
+    }
+    .top-form-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.9rem;
+    }
+    @media (min-width: 820px) {
+      .top-form-grid {
+        grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+        align-items: start;
+      }
+    }
+    .field-stack + .field-stack {
+      margin-top: 0.75rem;
+    }
+    .top-actions {
+      display: flex;
+      justify-content: flex-start;
+      margin-top: 0.45rem;
+    }
+    .compact-panel {
+      border: 1px solid #e7e7ea;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #fcfcfd 0%, #f7f7f9 100%);
+      padding: 0.85rem;
+    }
+    .compact-panel .section-heading {
+      margin-bottom: 0.2rem;
+    }
+    .compact-panel + .compact-panel {
+      margin-top: 0.75rem;
+    }
+    .panel-divider {
+      height: 1px;
+      background: #e6e6ea;
+      margin: 0.8rem 0;
+    }
+    .invoice-inline-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.55rem;
+      margin-top: 0.55rem;
+    }
+    @media (min-width: 640px) {
+      .invoice-inline-row {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    .history-header-row,
+    .master-quote-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .customer-context {
+      font-size: 0.84rem;
+      color: #555;
+      margin: 0.2rem 0 0.75rem 0;
+    }
+    .collapsible-body {
+      display: none;
+      margin-top: 0.75rem;
+    }
+    .collapsible-body.open {
+      display: block;
+    }
+    .signature-wrap {
+      margin-top: 0.75rem;
+      border: 1px solid #e4e4e7;
+      border-radius: 12px;
+      padding: 0.75rem;
+      background: #fafafa;
+    }
+    .signature-canvas-wrap {
+      width: 100%;
+      border: 1px dashed #bdbdbd;
+      border-radius: 10px;
+      background: #fff;
+      overflow: hidden;
+      margin-top: 0.45rem;
+    }
+    #signatureCanvas {
+      width: 100%;
+      height: 180px;
+      display: block;
+      touch-action: none;
+      background: #fff;
+    }
+    .signature-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 0.6rem;
+    }
+    .signature-preview {
+      max-width: 100%;
+      max-height: 180px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background: #fff;
+      margin-top: 0.5rem;
+    }
+    .details-box {
+      margin-top: 0.75rem;
+      padding: 0.75rem;
+      border: 1px solid #e6e6e6;
+      border-radius: 12px;
+      background: #fbfbfb;
+    }
+    .details-box h3 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1rem;
+    }
+    .details-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+    @media (min-width: 720px) {
+      .details-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    .details-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #666;
+      margin-bottom: 0.2rem;
+    }
+    .details-value {
+      font-size: 0.92rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+  
+.customer-section, .items-section {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+</style>
+</head>
+<body>
+  <div class="page-shell">
+
+    <!-- Top bar -->
+    <div class="top-bar">
+      <div class="customer-section">
+<h1>AMS Order Form</h1>
+      <div id="userInfo" style="font-size:0.8rem;color:#666;display:none;">
+        Signed in as <span id="userNameLabel"></span>
+      </div>
+    </div>
+
+    <!-- Login screen -->
+    <div id="loginScreen" class="card login-card">
+      <div class="login-title">Sign in to AMS Order Tool</div>
+      <div class="login-subtitle">
+        Use your work email and password. Once signed in, you'll only see the
+        customers assigned to you.
+      </div>
+
+      <form id="loginForm">
+        <div class="login-row">
+          <label for="loginEmail">Email</label>
+          <input id="loginEmail" type="text" placeholder="you@company.com" />
+        </div>
+
+        <div class="login-row">
+          <label for="loginPassword">Password</label>
+          <input id="loginPassword" type="password" placeholder="••••••••" />
+        </div>
+
+        <button type="submit" class="btn-small-inline" style="margin-top:0.5rem;">
+          Sign in
+        </button>
+
+        <div class="login-footer">
+          Having trouble signing in? Contact the office for help.
+        </div>
+      </form>
+    </div>
+
+    <!-- Main app (hidden until "login") -->
+    <div id="orderApp" style="display:none;">
+
+      <div class="card">
+        <div class="top-form-grid">
+          <div>
+            <div class="field-stack">
+              <label for="customerName">Customer Name</label>
+              <input id="customerName" type="text" placeholder="e.g. ABC Trucking" />
+              <div id="customerSuggestions"></div>
+              <div class="top-actions">
+                <button type="button" class="small-btn" onclick="openManageCustomers()">Manage customers</button>
+              </div>
+            </div>
+
+            <div class="field-stack">
+              <label for="shipTo">Ship To / Notes (optional)</label>
+              <textarea id="shipTo" placeholder="Address, special instructions, etc."></textarea>
+            </div>
+          </div>
+
+          <div>
+            <div class="compact-panel">
+              <h2 class="section-heading">Order confirmation</h2>
+              <p class="note">Capture a signed approval before generating the order.</p>
+
+              <div class="inline-checkbox" style="margin-top:0.35rem;">
+                <input type="checkbox" id="requireSignature" />
+                <label for="requireSignature" style="margin:0;">Require customer signature for this order</label>
+              </div>
+
+              <div id="signatureSection" class="signature-wrap" style="display:none;">
+                <label for="signatureName">Customer signer name</label>
+                <input id="signatureName" type="text" placeholder="Who approved this order?" />
+
+                <label for="signatureCanvas" style="margin-top:0.6rem;">Customer signature</label>
+                <div class="signature-canvas-wrap">
+                  <canvas id="signatureCanvas"></canvas>
+                </div>
+
+                <div class="signature-actions">
+                  <button type="button" class="small-btn" onclick="clearSignature()">Clear signature</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="compact-panel">
+              <h2 class="section-heading">Customer invoice</h2>
+              <p class="note">Optionally draft a separate invoice email for the customer after the warehouse order email opens.</p>
+
+              <div class="inline-checkbox" style="margin-top:0.35rem;">
+                <input type="checkbox" id="sendInvoiceToCustomer" />
+                <label for="sendInvoiceToCustomer" style="margin:0;">Also draft customer invoice email</label>
+              </div>
+
+              <div id="invoiceSection" style="display:none;">
+                <div class="invoice-inline-row">
+                  <div>
+                    <label for="invoiceCustomerEmail">Customer email</label>
+                    <input id="invoiceCustomerEmail" type="text" placeholder="customer@example.com" />
+                  </div>
+                  <div>
+                    <label for="invoiceAttention">Attention / Contact name (optional)</label>
+                    <input id="invoiceAttention" type="text" placeholder="Who should receive it?" />
+                  </div>
+                </div>
+
+                <label for="invoiceMessage" style="margin-top:0.6rem;">Invoice message (optional)</label>
+                <textarea id="invoiceMessage" placeholder="Thanks for your order. Attached below is a summary of the items ordered."></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="compact-panel" style="margin-top:0.85rem;">
+          <h2 class="section-heading">New customer account</h2>
+          <p class="note">Include account setup details for new customers in the warehouse email.</p>
+
+          <div class="inline-checkbox" style="margin-top:0.35rem;">
+            <input type="checkbox" id="newCustomer" />
+            <label for="newCustomer" style="margin:0;">Include account details (new customer)</label>
+          </div>
+
+          <!-- Customer details (for warehouse email only; not saved) -->
+          <div id="newCustomerDetails" style="display:none; margin-top:0.75rem;">
+            <div class="two-column">
+              <!-- Shipping Address -->
+              <div>
+                <div class="subheading">Shipping Address</div>
+                <label for="shipAddr1">Address Line 1 *</label>
+                <input type="text" id="shipAddr1" />
+                <label for="shipAddr2">Address Line 2 (optional)</label>
+                <input type="text" id="shipAddr2" />
+
+                <label>City, State, Zip *</label>
+                <div class="row-3">
+                  <input type="text" id="shipCity" placeholder="City" />
+                  <input type="text" id="shipState" placeholder="State" />
+                  <input type="text" id="shipZip" placeholder="Zip" />
+                </div>
+
+                <label>Contact info *</label>
+                <input type="text" id="shipContactName" placeholder="Contact Name" />
+                <input type="text" id="shipContactPhone" placeholder="Contact Phone Number" />
+                <input type="text" id="shipContactEmail" placeholder="Contact Email" />
+              </div>
+
+              <!-- Billing Address -->
+              <div>
+                <div class="subheading">Billing Address</div>
+
+                <div class="inline-checkbox" style="margin-top:0;">
+                  <input type="checkbox" id="billingSameAsShipping" />
+                  <label for="billingSameAsShipping" style="margin:0;">Billing same as shipping</label>
+                </div>
+
+                <label for="billAddr1">Address Line 1 *</label>
+                <input type="text" id="billAddr1" />
+                <label for="billAddr2">Address Line 2 (optional)</label>
+                <input type="text" id="billAddr2" />
+
+                <label>City, State, Zip *</label>
+                <div class="row-3">
+                  <input type="text" id="billCity" placeholder="City" />
+                  <input type="text" id="billState" placeholder="State" />
+                  <input type="text" id="billZip" placeholder="Zip" />
+                </div>
+
+                <label>Contact info *</label>
+                <input type="text" id="billContactName" placeholder="Contact Name" />
+                <input type="text" id="billContactPhone" placeholder="Contact Phone Number" />
+                <input type="text" id="billContactEmail" placeholder="Contact Email" />
+              </div>
+            </div>
+
+            <div style="margin-top:0.75rem;">
+              <label for="businessType">Type of business *</label>
+              <input type="text" id="businessType" placeholder="e.g. Trucking company, repair shop, farm..." />
+            </div>
+
+            <div style="margin-top:0.75rem;">
+              <div class="inline-checkbox">
+                <input type="checkbox" id="taxExempt" />
+                <label for="taxExempt" style="margin:0;">Customer is tax exempt</label>
+              </div>
+
+              <div id="countyRow" style="margin-top:0.4rem;">
+                <label for="county">County (only if not tax exempt) *</label>
+                <input type="text" id="county" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+<div class="card" id="previousOrdersCard" style="display:none;">
+        <div class="history-header-row">
+          <div>
+            <h2 class="section-heading">Previous orders</h2>
+            <p class="note">Shows the last 5 saved orders for the selected customer on this device.</p>
+          </div>
+          <button type="button" class="small-btn" onclick="buildOrderHistoryTable()">Refresh</button>
+        </div>
+
+        <div id="orderHistoryContext" class="customer-context">Enter a customer name to view recent orders.</div>
+
+        <div class="table-container">
+          <table class="manage-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th style="width:90px;">Items</th>
+                <th style="width:120px;">Total</th>
+                <th style="width:180px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="orderHistoryBody"></tbody>
+          </table>
+        </div>
+
+        <div id="orderDetailsBox" class="details-box" style="display:none;"></div>
+      </div>
+
+
+      <!-- Master quote right above item list -->
+      <div class="card" id="masterQuoteCard" style="display:none;">
+        <div class="master-quote-header">
+          <div>
+            <h2 style="font-size:1.1rem;margin:0;">Master Quote</h2>
+            <p class="note" id="masterQuoteNote" style="margin:0.2rem 0 0 0;"></p>
+          </div>
+          <button type="button" class="small-btn" id="masterQuoteToggleBtn" onclick="toggleMasterQuote()">Show master quote</button>
+        </div>
+        <div id="masterQuoteContent" class="collapsible-body">
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Code</th>
+                  <th>Price</th>
+                </tr>
+              </thead>
+              <tbody id="masterQuoteBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 style="font-size:1.1rem;margin-top:0;">Items</h2>
+        <p class="note">Check the items being ordered and enter quantities.</p>
+
+        <!-- Sticky header area -->
+        <div class="sticky-header">
+          <button class="btn" style="margin-top:0;" onclick="generateEmail()">
+            Generate Email
+          </button>
+
+          <!-- Search bar -->
+          <label for="itemSearch" style="margin-top:0.6rem;">Search items</label>
+          <input
+            </div>
+<div class="items-section">
+<input id="itemSearch"
+            type="text"
+            placeholder="Type to filter by name, code, or UOM"
+            style="margin-bottom:0.3rem;"
+          />
+        </div>
+
+        <!-- Stacked item list -->
+        <div id="itemsContainer">
+          <!-- JS fills with .item-block elements -->
+        </div>
+      </div>
+
+      <!-- Manage customers overlay -->
+      <div id="manageCustomersOverlay">
+        <div class="card" id="manageCustomersPanel">
+          <h2 style="font-size:1.1rem;margin-top:0;">Manage customers</h2>
+          <p class="note">
+            View or remove saved customers and their master quotes. To update pricing,
+            select a customer on the main screen and adjust prices there, or use Edit
+            below. Changes save when you generate an order or when you click Save here.
+          </p>
+
+          <div class="table-container">
+            <table class="manage-table">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th style="width:70px;">Items</th>
+                  <th style="width:140px;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="manageCustomersBody">
+                <!-- filled by JS -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Editable master quote section -->
+          <div id="editCustomerSection" style="display:none;">
+            <h3>Edit master quote for <span id="editCustomerName"></span></h3>
+            <div class="table-container">
+              <table class="manage-table">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Code</th>
+                    <th>Price</th>
+                    <th style="width:70px;">Remove</th>
+                  </tr>
+                </thead>
+                <tbody id="editCustomerBody">
+                  <!-- rows added by JS -->
+                </tbody>
+              </table>
+            </div>
+            <div class="manage-actions">
+              <button type="button" class="small-btn" onclick="saveEditedCustomerQuote()">
+                Save
+              </button>
+              <button type="button" class="small-btn" onclick="cancelEditCustomer()">
+                Cancel
+              </button>
+            </div>
+          </div>
+
+          <div class="manage-actions">
+            <button type="button" class="small-btn" onclick="exportCustomerData()">
+              Export
+            </button>
+            <button type="button" class="small-btn" onclick="document.getElementById('importFile').click();">
+              Import
+            </button>
+            <button type="button" class="small-btn" onclick="closeManageCustomers()">
+              Close
+            </button>
+          </div>
+
+          <input type="file" id="importFile" accept="application/json,.json" style="display:none;">
+        </div>
+      </div>
+
+    </div> <!-- /#orderApp -->
+  </div> <!-- /.page-shell -->
+
+  <script>
+    // === CONFIGURE THESE ===
+    var WAREHOUSE_EMAIL = "amssupply@outlook.com";
+    var COMPANY_NAME = "AMS Supply";
+    var STORAGE_KEY = "ams_customer_quotes_v1"; // wrapper with .customers
+    var ORDER_HISTORY_STORAGE_KEY = "ams_order_history_v1";
+    var MAX_SAVED_ORDERS = 100;
+    // =======================
+
+    // Items loaded from items.json
+    // Each: { name, uom, code }
+    var ITEMS = [];
+
+    // Per-customer data:
+    // CUSTOMER_QUOTES = {
+    //   normalizedName: {
+    //     displayName: "ABC Trucking",
+    //     items: { codeKey: { name,uom,code,price } }
+    //   }
+    // }
+    var CUSTOMER_QUOTES = {};
+    var CURRENT_CUSTOMER_KEY = null;
+    var EDITING_CUSTOMER_KEY = null;
+    var ORDER_HISTORY = [];
+    var signaturePadReady = false;
+    var signatureIsDirty = false;
+    var signatureCtx = null;
+
+    function trimString(str) {
+      return (str || "").replace(/^\s+|\s+$/g, "");
+    }
+
+    // Escape HTML (still useful for any future HTML use, but not needed for mailto now)
+    function escapeHtml(str) {
+      return String(str == null ? "" : str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function normalizeCustomerName(name) {
+      return trimString(name).toLowerCase();
+    }
+
+    function safeLoadCustomerQuotes() {
+      try {
+        var raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+        var data = JSON.parse(raw);
+        if (data && typeof data === "object" && data.customers && typeof data.customers === "object") {
+          CUSTOMER_QUOTES = data.customers;
+          return;
+        }
+        if (data && typeof data === "object") {
+          CUSTOMER_QUOTES = data;
+        }
+      } catch (e) {
+        console.log("Could not load customer quotes:", e);
+      }
+    }
+
+    function safeSaveCustomerQuotes() {
+      try {
+        var wrapper = {
+          type: "ams_customer_db",
+          version: 1,
+          customers: CUSTOMER_QUOTES
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(wrapper));
+      } catch (e) {
+        console.log("Could not save customer quotes:", e);
+      }
+    }
+
+    function cleanName(rawName, uom) {
+      if (!rawName || !uom) return rawName || "";
+      var name = rawName;
+      var u = trimString(uom);
+      var suffix = " (" + u + ")";
+      if (name.length >= suffix.length &&
+          name.lastIndexOf(suffix) === name.length - suffix.length) {
+        name = name.substring(0, name.length - suffix.length);
+      }
+      name = name.replace(/\s{2,}/g, " ");
+      return trimString(name);
+    }
+
+
+    function formatMoney(value) {
+      return typeof value === "number" && !isNaN(value) ? "$" + value.toFixed(2) : "";
+    }
+
+    function formatDateTime(value) {
+      if (!value) return "";
+      var d = new Date(value);
+      if (isNaN(d.getTime())) return value;
+      return d.toLocaleString();
+    }
+
+    function escapeAttribute(str) {
+      return String(str == null ? "" : str).replace(/"/g, "&quot;");
+    }
+
+    function safeLoadOrderHistory() {
+      try {
+        var raw = localStorage.getItem(ORDER_HISTORY_STORAGE_KEY);
+        if (!raw) {
+          ORDER_HISTORY = [];
+          return;
+        }
+        var data = JSON.parse(raw);
+        if (data && typeof data === "object" && Object.prototype.toString.call(data.orders) === "[object Array]") {
+          ORDER_HISTORY = data.orders;
+          return;
+        }
+        if (Object.prototype.toString.call(data) === "[object Array]") {
+          ORDER_HISTORY = data;
+          return;
+        }
+      } catch (e) {
+        console.log("Could not load order history:", e);
+      }
+      ORDER_HISTORY = [];
+    }
+
+    function safeSaveOrderHistory() {
+      try {
+        var wrapper = {
+          type: "ams_order_history_db",
+          version: 1,
+          orders: ORDER_HISTORY.slice(0, MAX_SAVED_ORDERS)
+        };
+        localStorage.setItem(ORDER_HISTORY_STORAGE_KEY, JSON.stringify(wrapper));
+      } catch (e) {
+        console.log("Could not save order history:", e);
+      }
+    }
+
+    function buildOrderHistoryTable() {
+      var tbody = document.getElementById("orderHistoryBody");
+      var detailsBox = document.getElementById("orderDetailsBox");
+      var context = document.getElementById("orderHistoryContext");
+      var customerInput = document.getElementById("customerName");
+      if (!tbody) return;
+
+      if (detailsBox) {
+        detailsBox.style.display = "none";
+        detailsBox.innerHTML = "";
+      }
+
+      var selectedName = customerInput ? trimString(customerInput.value) : "";
+      var selectedKey = normalizeCustomerName(selectedName);
+      tbody.innerHTML = "";
+
+      var historyCard = document.getElementById("previousOrdersCard");
+
+      if (!selectedName) {
+        if (historyCard) historyCard.style.display = "none";
+        if (context) {
+          context.textContent = "Enter a customer name to view recent orders.";
+        }
+        return;
+      }
+
+      if (historyCard) historyCard.style.display = "block";
+
+      var list = ORDER_HISTORY.filter(function(order) {
+        return normalizeCustomerName(order.customerName || "") === selectedKey;
+      }).slice(0, 5);
+
+      if (context) {
+        context.textContent = "Showing up to 5 most recent orders for " + selectedName + ".";
+      }
+
+      if (list.length === 0) {
+        var emptyRow = document.createElement("tr");
+        var emptyCell = document.createElement("td");
+        emptyCell.colSpan = 4;
+        emptyCell.textContent = "No saved orders yet for this customer.";
+        emptyRow.appendChild(emptyCell);
+        tbody.appendChild(emptyRow);
+        return;
+      }
+
+      list.forEach(function(order) {
+        var row = document.createElement("tr");
+
+        var dateCell = document.createElement("td");
+        dateCell.textContent = formatDateTime(order.createdAt);
+        row.appendChild(dateCell);
+
+        var itemsCell = document.createElement("td");
+        itemsCell.textContent = order.items ? order.items.length : 0;
+        row.appendChild(itemsCell);
+
+        var totalCell = document.createElement("td");
+        totalCell.textContent = formatMoney(order.subtotal);
+        row.appendChild(totalCell);
+
+        var actionsCell = document.createElement("td");
+
+        var viewBtn = document.createElement("button");
+        viewBtn.type = "button";
+        viewBtn.className = "small-btn";
+        viewBtn.style.marginRight = "0.25rem";
+        viewBtn.textContent = "View";
+        viewBtn.onclick = function() {
+          showOrderDetails(order.id);
+        };
+        actionsCell.appendChild(viewBtn);
+
+        var reuseBtn = document.createElement("button");
+        reuseBtn.type = "button";
+        reuseBtn.className = "small-btn";
+        reuseBtn.style.marginRight = "0.25rem";
+        reuseBtn.textContent = "Reuse";
+        reuseBtn.onclick = function() {
+          loadOrderIntoForm(order.id);
+        };
+        actionsCell.appendChild(reuseBtn);
+
+        var deleteBtn = document.createElement("button");
+        deleteBtn.type = "button";
+        deleteBtn.className = "small-btn";
+        deleteBtn.textContent = "Delete";
+        deleteBtn.onclick = function() {
+          deleteSavedOrder(order.id);
+        };
+        actionsCell.appendChild(deleteBtn);
+
+        row.appendChild(actionsCell);
+        tbody.appendChild(row);
+      });
+    }
+
+    function saveOrderToHistory(orderRecord) {
+      ORDER_HISTORY.unshift(orderRecord);
+      if (ORDER_HISTORY.length > MAX_SAVED_ORDERS) {
+        ORDER_HISTORY = ORDER_HISTORY.slice(0, MAX_SAVED_ORDERS);
+      }
+      safeSaveOrderHistory();
+      buildOrderHistoryTable();
+    }
+
+    function getOrderById(orderId) {
+      for (var i = 0; i < ORDER_HISTORY.length; i++) {
+        if (ORDER_HISTORY[i] && ORDER_HISTORY[i].id === orderId) {
+          return ORDER_HISTORY[i];
+        }
+      }
+      return null;
+    }
+
+    function showOrderDetails(orderId) {
+      var order = getOrderById(orderId);
+      var box = document.getElementById("orderDetailsBox");
+      if (!order || !box) return;
+
+      var itemsHtml = "";
+      var items = order.items || [];
+      if (items.length === 0) {
+        itemsHtml = "<div class=\"details-value\">No line items saved.</div>";
+      } else {
+        itemsHtml += "<div class=\"table-container\"><table class=\"manage-table\"><thead><tr><th>Qty</th><th>Item</th><th>Code</th><th>Price</th><th>Total</th></tr></thead><tbody>";
+        items.forEach(function(item) {
+          itemsHtml += "<tr>" +
+            "<td>" + escapeHtml(item.qty || "") + "</td>" +
+            "<td>" + escapeHtml(item.item || "") + "</td>" +
+            "<td>" + escapeHtml(item.code || "") + "</td>" +
+            "<td>" + escapeHtml(item.priceStr || "") + "</td>" +
+            "<td>" + escapeHtml(item.lineTotalStr || "") + "</td>" +
+          "</tr>";
+        });
+        itemsHtml += "</tbody></table></div>";
+      }
+
+      var signatureHtml = "<div class=\"details-value\">No signature saved.</div>";
+      if (order.signature && order.signature.required) {
+        signatureHtml = "<div class=\"details-value\"><strong>Signed by:</strong> " +
+          escapeHtml(order.signature.signerName || "Unknown") +
+          "<br><strong>Signed at:</strong> " + escapeHtml(formatDateTime(order.signature.signedAt)) +
+          "</div>";
+        if (order.signature.imageDataUrl) {
+          signatureHtml += "<img class=\"signature-preview\" alt=\"Saved signature\" src=\"" +
+            escapeAttribute(order.signature.imageDataUrl) + "\">";
+        }
+      }
+
+      box.innerHTML =
+        "<h3>Order details</h3>" +
+        "<div class=\"details-grid\">" +
+          "<div><div class=\"details-label\">Customer</div><div class=\"details-value\">" + escapeHtml(order.customerName || "") + "</div></div>" +
+          "<div><div class=\"details-label\">Created</div><div class=\"details-value\">" + escapeHtml(formatDateTime(order.createdAt)) + "</div></div>" +
+          "<div><div class=\"details-label\">Subtotal</div><div class=\"details-value\">" + escapeHtml(formatMoney(order.subtotal)) + "</div></div>" +
+          "<div><div class=\"details-label\">Items</div><div class=\"details-value\">" + escapeHtml(String(items.length)) + "</div></div>" +
+        "</div>" +
+        "<div style=\"margin-top:0.75rem;\"><div class=\"details-label\">Ship To / Notes</div><div class=\"details-value\">" + escapeHtml(order.shipTo || "") + "</div></div>" +
+        "<div style=\"margin-top:0.75rem;\"><div class=\"details-label\">Signature</div>" + signatureHtml + "</div>" +
+        "<div style=\"margin-top:0.75rem;\"><div class=\"details-label\">Line items</div>" + itemsHtml + "</div>";
+
+      box.style.display = "block";
+    }
+
+    function deleteSavedOrder(orderId) {
+      var order = getOrderById(orderId);
+      if (!order) return;
+      if (!confirm("Delete saved order for " + (order.customerName || "this customer") + "?")) {
+        return;
+      }
+      ORDER_HISTORY = ORDER_HISTORY.filter(function(entry) {
+        return entry && entry.id !== orderId;
+      });
+      safeSaveOrderHistory();
+      buildOrderHistoryTable();
+    }
+
+    function loadOrderIntoForm(orderId) {
+      var order = getOrderById(orderId);
+      if (!order) return;
+
+      var customerInput = document.getElementById("customerName");
+      var shipToInput = document.getElementById("shipTo");
+      if (customerInput) customerInput.value = order.customerName || "";
+      if (shipToInput) shipToInput.value = order.shipTo || "";
+
+      for (var i = 0; i < ITEMS.length; i++) {
+        var checkbox = document.getElementById("itemCheck_" + i);
+        var qtyInput = document.getElementById("itemQty_" + i);
+        if (checkbox) checkbox.checked = false;
+        if (qtyInput) qtyInput.value = "";
+      }
+
+      var orderItems = order.items || [];
+      for (var j = 0; j < orderItems.length; j++) {
+        var entry = orderItems[j];
+        for (var i2 = 0; i2 < ITEMS.length; i2++) {
+          var item = ITEMS[i2] || {};
+          if ((entry.code && item.code === entry.code) || (!entry.code && cleanName(item.name, item.uom) === entry.item)) {
+            var cb = document.getElementById("itemCheck_" + i2);
+            var qty = document.getElementById("itemQty_" + i2);
+            if (cb) cb.checked = true;
+            if (qty) qty.value = entry.qty || "";
+          }
+        }
+      }
+
+      updateItemInputStates();
+      onCustomerNameChange();
+      showOrderDetails(orderId);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function updateItemInputStates() {
+      for (var i = 0; i < ITEMS.length; i++) {
+        var checkbox = document.getElementById("itemCheck_" + i);
+        var qtyInput = document.getElementById("itemQty_" + i);
+        if (checkbox && qtyInput) {
+          qtyInput.disabled = !checkbox.checked;
+        }
+      }
+    }
+
+    function setupSignatureSection() {
+      var requireBox = document.getElementById("requireSignature");
+      var section = document.getElementById("signatureSection");
+      if (!requireBox || !section) return;
+
+      function sync() {
+        section.style.display = requireBox.checked ? "block" : "none";
+      }
+
+      requireBox.addEventListener("change", sync);
+      sync();
+    }
+
+    function resizeSignatureCanvas() {
+      var canvas = document.getElementById("signatureCanvas");
+      if (!canvas) return;
+      var ratio = window.devicePixelRatio || 1;
+      var rect = canvas.getBoundingClientRect();
+      var oldData = signatureIsDirty ? canvas.toDataURL("image/png") : null;
+      canvas.width = Math.max(1, Math.floor(rect.width * ratio));
+      canvas.height = Math.max(1, Math.floor(rect.height * ratio));
+      signatureCtx = canvas.getContext("2d");
+      signatureCtx.scale(ratio, ratio);
+      signatureCtx.lineWidth = 2;
+      signatureCtx.lineCap = "round";
+      signatureCtx.lineJoin = "round";
+      signatureCtx.strokeStyle = "#111";
+      signatureCtx.fillStyle = "#fff";
+      signatureCtx.fillRect(0, 0, rect.width, rect.height);
+      if (oldData) {
+        var img = new Image();
+        img.onload = function() {
+          signatureCtx.drawImage(img, 0, 0, rect.width, rect.height);
+        };
+        img.src = oldData;
+      }
+    }
+
+    function setupSignaturePad() {
+      var canvas = document.getElementById("signatureCanvas");
+      if (!canvas || signaturePadReady) return;
+
+      resizeSignatureCanvas();
+
+      var drawing = false;
+      function getPoint(evt) {
+        var rect = canvas.getBoundingClientRect();
+        var source = evt.touches && evt.touches[0] ? evt.touches[0] : evt;
+        return {
+          x: source.clientX - rect.left,
+          y: source.clientY - rect.top
+        };
+      }
+
+      function start(evt) {
+        evt.preventDefault();
+        var pt = getPoint(evt);
+        drawing = true;
+        signatureIsDirty = true;
+        signatureCtx.beginPath();
+        signatureCtx.moveTo(pt.x, pt.y);
+      }
+
+      function move(evt) {
+        if (!drawing) return;
+        evt.preventDefault();
+        var pt = getPoint(evt);
+        signatureCtx.lineTo(pt.x, pt.y);
+        signatureCtx.stroke();
+      }
+
+      function end(evt) {
+        if (!drawing) return;
+        evt.preventDefault();
+        drawing = false;
+      }
+
+      canvas.addEventListener("mousedown", start);
+      canvas.addEventListener("mousemove", move);
+      window.addEventListener("mouseup", end);
+      canvas.addEventListener("touchstart", start, { passive: false });
+      canvas.addEventListener("touchmove", move, { passive: false });
+      window.addEventListener("touchend", end, { passive: false });
+      window.addEventListener("resize", resizeSignatureCanvas);
+
+      signaturePadReady = true;
+    }
+
+    function clearSignature() {
+      var canvas = document.getElementById("signatureCanvas");
+      if (!canvas) return;
+      resizeSignatureCanvas();
+      signatureIsDirty = false;
+    }
+
+    function getSignatureData() {
+      var requireBox = document.getElementById("requireSignature");
+      var signerInput = document.getElementById("signatureName");
+      var canvas = document.getElementById("signatureCanvas");
+
+      if (!(requireBox && requireBox.checked)) {
+        return { required: false };
+      }
+
+      var signerName = signerInput ? trimString(signerInput.value) : "";
+      if (!signerName) {
+        alert("Please enter the customer signer name.");
+        return null;
+      }
+
+      if (!canvas || !signatureIsDirty) {
+        alert("Please capture the customer signature before generating the order.");
+        return null;
+      }
+
+      return {
+        required: true,
+        signerName: signerName,
+        signedAt: new Date().toISOString(),
+        imageDataUrl: canvas.toDataURL("image/png")
+      };
+    }
+
+
+    // Build items list, sorted
+    function buildItemsTable(customer) {
+      var container = document.getElementById("itemsContainer");
+      if (!container) return;
+      container.innerHTML = "";
+
+      var indices = [];
+      for (var i = 0; i < ITEMS.length; i++) {
+        indices.push(i);
+      }
+
+      var quoteMap = (customer && customer.items) ? customer.items : null;
+
+      indices.sort(function(a, b) {
+        var ia = ITEMS[a] || {};
+        var ib = ITEMS[b] || {};
+
+        var codeA = (ia.code || "").toUpperCase();
+        var codeB = (ib.code || "").toUpperCase();
+
+        var inQuoteA = !!(quoteMap && ia.code && quoteMap[ia.code]);
+        var inQuoteB = !!(quoteMap && ib.code && quoteMap[ib.code]);
+
+        if (inQuoteA && !inQuoteB) return -1;
+        if (!inQuoteA && inQuoteB) return 1;
+
+        if (codeA < codeB) return -1;
+        if (codeA > codeB) return 1;
+
+        var nameA = (ia.name || "").toLowerCase();
+        var nameB = (ib.name || "").toLowerCase();
+        if (nameA < nameB) return -1;
+        if (nameA > nameB) return 1;
+        return 0;
+      });
+
+      var seenQuoted = false;
+      var dividerInserted = false;
+
+      for (var idx = 0; idx < indices.length; idx++) {
+        var i = indices[idx];
+        var item = ITEMS[i];
+
+        var inQuote = !!(quoteMap && item.code && quoteMap[item.code]);
+
+        if (!inQuote && seenQuoted && !dividerInserted) {
+          var divider = document.createElement("div");
+          divider.className = "items-divider-row";
+          divider.textContent = "Other items";
+          container.appendChild(divider);
+          dividerInserted = true;
+        }
+
+        if (inQuote) {
+          seenQuoted = true;
+        }
+
+        var block = document.createElement("div");
+        block.className = "item-block";
+        block.dataset.index = i;
+
+        var header = document.createElement("div");
+        header.className = "item-header";
+
+        var checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.id = "itemCheck_" + i;
+        checkbox.setAttribute("data-qty-id", "itemQty_" + i);
+
+        var nameSpan = document.createElement("span");
+        nameSpan.className = "item-name";
+        nameSpan.textContent = cleanName(item.name, item.uom);
+
+        header.appendChild(checkbox);
+        header.appendChild(nameSpan);
+
+        var meta = document.createElement("div");
+        meta.className = "item-meta";
+
+        var codeLine = document.createElement("div");
+        codeLine.className = "item-meta-line";
+        codeLine.innerHTML = 'Item Code: <span class="item-code">' + (item.code || "") + "</span>";
+
+        var uomLine = document.createElement("div");
+        uomLine.className = "item-meta-line";
+        uomLine.innerHTML = 'UOM: <span class="item-uom">' + (item.uom || "") + "</span>";
+
+        meta.appendChild(codeLine);
+        meta.appendChild(uomLine);
+
+        var inputs = document.createElement("div");
+        inputs.className = "item-inputs";
+
+        var qtyLabel = document.createElement("span");
+        qtyLabel.textContent = "Qty:";
+
+        var qtyInput = document.createElement("input");
+        qtyInput.type = "number";
+        qtyInput.min = "1";
+        qtyInput.step = "1";
+        qtyInput.disabled = true;
+        qtyInput.id = "itemQty_" + i;
+
+        var priceLabel = document.createElement("span");
+        priceLabel.textContent = "Price:";
+
+        var priceInput = document.createElement("input");
+        priceInput.type = "number";
+        priceInput.min = "0";
+        priceInput.step = "0.01";
+        priceInput.inputMode = "decimal";
+        priceInput.id = "itemPrice_" + i;
+
+        inputs.appendChild(qtyLabel);
+        inputs.appendChild(qtyInput);
+        inputs.appendChild(priceLabel);
+        inputs.appendChild(priceInput);
+
+        block.appendChild(header);
+        block.appendChild(meta);
+        block.appendChild(inputs);
+
+        container.appendChild(block);
+      }
+
+      var allCheckboxes = container.querySelectorAll("input[type=checkbox]");
+      for (var j = 0; j < allCheckboxes.length; j++) {
+        allCheckboxes[j].onchange = function () {
+          var qtyId = this.getAttribute("data-qty-id");
+          var input = document.getElementById(qtyId);
+          if (!input) return;
+          if (this.checked) {
+            input.disabled = false;
+          } else {
+            input.disabled = true;
+            input.value = "";
+          }
+        };
+      }
+
+      updateItemInputStates();
+
+      if (customer && customer.items) {
+        applyMasterQuoteToTable(customer);
+      } else if (CURRENT_CUSTOMER_KEY && CUSTOMER_QUOTES[CURRENT_CUSTOMER_KEY]) {
+        applyMasterQuoteToTable(CUSTOMER_QUOTES[CURRENT_CUSTOMER_KEY]);
+      }
+    }
+
+    function setupItemSearch() {
+      var searchInput = document.getElementById("itemSearch");
+      if (!searchInput) return;
+
+      searchInput.addEventListener("input", function () {
+        var term = trimString(this.value).toLowerCase();
+        var container = document.getElementById("itemsContainer");
+        if (!container) return;
+
+        var blocks = container.querySelectorAll(".item-block");
+        var dividers = container.querySelectorAll(".items-divider-row");
+
+        for (var d = 0; d < dividers.length; d++) {
+          dividers[d].style.display = term ? "none" : "";
+        }
+
+        for (var i = 0; i < blocks.length; i++) {
+          var block = blocks[i];
+          var nameEl = block.querySelector(".item-name");
+          var codeEl = block.querySelector(".item-code");
+          var uomEl = block.querySelector(".item-uom");
+
+          var nameText = (nameEl ? nameEl.textContent : "").toLowerCase();
+          var codeText = (codeEl ? codeEl.textContent : "").toLowerCase();
+          var uomText = (uomEl ? uomEl.textContent : "").toLowerCase();
+
+          if (!term) {
+            block.style.display = "";
+          } else if (
+            nameText.indexOf(term) !== -1 ||
+            codeText.indexOf(term) !== -1 ||
+            uomText.indexOf(term) !== -1
+          ) {
+            block.style.display = "";
+          } else {
+            block.style.display = "none";
+          }
+        }
+      });
+    }
+
+    function setupNewCustomerSection() {
+      var newCustomer = document.getElementById("newCustomer");
+      var details = document.getElementById("newCustomerDetails");
+      var billingSame = document.getElementById("billingSameAsShipping");
+      var taxExempt = document.getElementById("taxExempt");
+      var countyRow = document.getElementById("countyRow");
+
+      function setDetailsVisibility() {
+        if (newCustomer && newCustomer.checked) {
+          details.style.display = "block";
+        } else {
+          details.style.display = "none";
+        }
+      }
+
+      function setBillingSameState() {
+        var shipAddr1 = document.getElementById("shipAddr1");
+        var shipAddr2 = document.getElementById("shipAddr2");
+        var shipCity = document.getElementById("shipCity");
+        var shipState = document.getElementById("shipState");
+        var shipZip = document.getElementById("shipZip");
+        var shipContactName = document.getElementById("shipContactName");
+        var shipContactPhone = document.getElementById("shipContactPhone");
+        var shipContactEmail = document.getElementById("shipContactEmail");
+
+        var billAddr1 = document.getElementById("billAddr1");
+        var billAddr2 = document.getElementById("billAddr2");
+        var billCity = document.getElementById("billCity");
+        var billState = document.getElementById("billState");
+        var billZip = document.getElementById("billZip");
+        var billContactName = document.getElementById("billContactName");
+        var billContactPhone = document.getElementById("billContactPhone");
+        var billContactEmail = document.getElementById("billContactEmail");
+
+        if (!billAddr1 || !billAddr2 || !billCity || !billState || !billZip ||
+            !billContactName || !billContactPhone || !billContactEmail) return;
+
+        if (billingSame && billingSame.checked) {
+          billAddr1.value = shipAddr1 ? shipAddr1.value : "";
+          billAddr2.value = shipAddr2 ? shipAddr2.value : "";
+          billCity.value = shipCity ? shipCity.value : "";
+          billState.value = shipState ? shipState.value : "";
+          billZip.value = shipZip ? shipZip.value : "";
+          billContactName.value = shipContactName ? shipContactName.value : "";
+          billContactPhone.value = shipContactPhone ? shipContactPhone.value : "";
+          billContactEmail.value = shipContactEmail ? shipContactEmail.value : "";
+
+          billAddr1.disabled = true;
+          billAddr2.disabled = true;
+          billCity.disabled = true;
+          billState.disabled = true;
+          billZip.disabled = true;
+          billContactName.disabled = true;
+          billContactPhone.disabled = true;
+          billContactEmail.disabled = true;
+        } else {
+          billAddr1.disabled = false;
+          billAddr2.disabled = false;
+          billCity.disabled = false;
+          billState.disabled = false;
+          billZip.disabled = false;
+          billContactName.disabled = false;
+          billContactPhone.disabled = false;
+          billContactEmail.disabled = false;
+        }
+      }
+
+      function setCountyVisibility() {
+        if (taxExempt && taxExempt.checked) {
+          countyRow.style.display = "none";
+          var countyInput = document.getElementById("county");
+          if (countyInput) countyInput.value = "";
+        } else {
+          countyRow.style.display = "block";
+        }
+      }
+
+      if (newCustomer) {
+        newCustomer.onchange = setDetailsVisibility;
+        setDetailsVisibility();
+      }
+
+      if (billingSame) {
+        billingSame.onchange = setBillingSameState;
+      }
+
+      if (taxExempt) {
+        taxExempt.onchange = setCountyVisibility;
+        setCountyVisibility();
+      }
+
+      window._amsSetBillingSameState = setBillingSameState;
+      window._amsSetCountyVisibility = setCountyVisibility;
+      window._amsSetDetailsVisibility = setDetailsVisibility;
+    }
+
+    function validateNewCustomerFields() {
+      var newCustomer = document.getElementById("newCustomer");
+      if (!(newCustomer && newCustomer.checked)) {
+        return true;
+      }
+
+      function val(id) {
+        var el = document.getElementById(id);
+        return el ? trimString(el.value || "") : "";
+      }
+
+      var shipAddr1 = val("shipAddr1");
+      var shipCity = val("shipCity");
+      var shipState = val("shipState");
+      var shipZip = val("shipZip");
+      var shipContactName = val("shipContactName");
+      var shipContactPhone = val("shipContactPhone");
+      var shipContactEmail = val("shipContactEmail");
+
+      if (!shipAddr1 || !shipCity || !shipState || !shipZip ||
+          !shipContactName || !shipContactPhone || !shipContactEmail) {
+        alert("Please fill in all required Shipping fields (everything with *).");
+        return false;
+      }
+
+      var billingSame = document.getElementById("billingSameAsShipping");
+      if (!billingSame || !billingSame.checked) {
+        var billAddr1 = val("billAddr1");
+        var billCity = val("billCity");
+        var billState = val("billState");
+        var billZip = val("billZip");
+        var billContactName = val("billContactName");
+        var billContactPhone = val("billContactPhone");
+        var billContactEmail = val("billContactEmail");
+
+        if (!billAddr1 || !billCity || !billState || !billZip ||
+            !billContactName || !billContactPhone || !billContactEmail) {
+          alert("Please fill in all required Billing fields (everything with *).");
+          return false;
+        }
+      }
+
+      var taxExempt = document.getElementById("taxExempt");
+      var county = val("county");
+      if (!(taxExempt && taxExempt.checked)) {
+        if (!county) {
+          alert("Please enter County (required if not tax exempt).");
+          return false;
+        }
+      }
+      return true;
+    }
+
+    function applyMasterQuoteToTable(cust) {
+      if (!cust || !cust.items) return;
+      for (var i = 0; i < ITEMS.length; i++) {
+        var code = ITEMS[i].code || "";
+               if (!code) continue;
+        var entry = cust.items[code];
+        if (!entry || typeof entry.price !== "number") continue;
+        var priceInput = document.getElementById("itemPrice_" + i);
+        if (priceInput) {
+          priceInput.value = entry.price.toFixed(2);
+        }
+      }
+    }
+
+    function renderMasterQuote(cust) {
+      var card = document.getElementById("masterQuoteCard");
+      var note = document.getElementById("masterQuoteNote");
+      var tbody = document.getElementById("masterQuoteBody");
+      if (!card || !note || !tbody) return;
+
+      tbody.innerHTML = "";
+
+      if (!cust) {
+        card.style.display = "block";
+        note.textContent = "No master quote yet for this customer. Once they place an order, their items and prices will appear here.";
+        return;
+      }
+
+      card.style.display = "block";
+      note.textContent = "Saved pricing for " + (cust.displayName || "") + ". Adjust prices in the main items list or via Manage customers.";
+
+      var codes = Object.keys(cust.items || {}).sort();
+      if (codes.length === 0) {
+        var row = document.createElement("tr");
+        var cell = document.createElement("td");
+        cell.colSpan = 3;
+        cell.textContent = "No items in this customer's master quote yet.";
+        row.appendChild(cell);
+        tbody.appendChild(row);
+        return;
+      }
+
+      for (var i = 0; i < codes.length; i++) {
+        var key = codes[i];
+        var entry = cust.items[key];
+        var row = document.createElement("tr");
+
+        var nameCell = document.createElement("td");
+        nameCell.textContent = entry.name || "";
+
+        var codeCell = document.createElement("td");
+        codeCell.textContent = entry.code || key || "";
+
+        var priceCell = document.createElement("td");
+        if (typeof entry.price === "number") {
+          priceCell.textContent = "$" + entry.price.toFixed(2);
+        } else {
+          priceCell.textContent = "-";
+        }
+
+        row.appendChild(nameCell);
+        row.appendChild(codeCell);
+        row.appendChild(priceCell);
+        tbody.appendChild(row);
+      }
+    }
+
+    function toggleMasterQuote(forceOpen) {
+      var content = document.getElementById("masterQuoteContent");
+      var btn = document.getElementById("masterQuoteToggleBtn");
+      if (!content || !btn) return;
+
+      var shouldOpen = typeof forceOpen === "boolean" ? forceOpen : !content.classList.contains("open");
+      if (shouldOpen) {
+        content.classList.add("open");
+        btn.textContent = "Hide master quote";
+      } else {
+        content.classList.remove("open");
+        btn.textContent = "Show master quote";
+      }
+    }
+
+    function updateCustomerSuggestions(term) {
+      var box = document.getElementById("customerSuggestions");
+      if (!box) return;
+
+      box.innerHTML = "";
+      term = trimString(term).toLowerCase();
+
+      if (!term) {
+        box.style.display = "none";
+        return;
+      }
+
+      var matches = [];
+      for (var key in CUSTOMER_QUOTES) {
+        if (!Object.prototype.hasOwnProperty.call(CUSTOMER_QUOTES, key)) continue;
+        var c = CUSTOMER_QUOTES[key];
+        var name = c && c.displayName ? c.displayName : "";
+        if (!name) continue;
+        if (name.toLowerCase().indexOf(term) !== -1) {
+          matches.push(name);
+        }
+      }
+
+      var seen = {};
+      var unique = [];
+      for (var i = 0; i < matches.length; i++) {
+        var n = matches[i];
+        if (!seen[n]) {
+          seen[n] = true;
+          unique.push(n);
+        }
+        if (unique.length >= 8) break;
+      }
+
+      if (unique.length === 0) {
+        box.style.display = "none";
+        return;
+      }
+
+      unique.forEach(function(name) {
+        var div = document.createElement("div");
+        div.className = "customer-suggestion";
+        div.textContent = name;
+
+        div.addEventListener("mousedown", function (e) {
+          e.preventDefault();
+          var input = document.getElementById("customerName");
+          if (input) {
+            input.value = name;
+          }
+          box.style.display = "none";
+          onCustomerNameChange();
+        });
+
+        box.appendChild(div);
+      });
+
+      box.style.display = "block";
+    }
+
+    function onCustomerNameChange() {
+      var input = document.getElementById("customerName");
+      var box = document.getElementById("customerSuggestions");
+      if (box) {
+        box.style.display = "none";
+      }
+      if (!input) return;
+
+      var rawName = trimString(input.value);
+      var card = document.getElementById("masterQuoteCard");
+
+      if (!rawName) {
+        CURRENT_CUSTOMER_KEY = null;
+        if (card) card.style.display = "none";
+        buildItemsTable(null);
+        buildOrderHistoryTable();
+        return;
+      }
+
+      var key = normalizeCustomerName(rawName);
+      var existing = CUSTOMER_QUOTES[key];
+
+      if (!existing) {
+        CURRENT_CUSTOMER_KEY = null;
+        buildItemsTable(null);
+        renderMasterQuote(null);
+      } else {
+        CURRENT_CUSTOMER_KEY = key;
+        buildItemsTable(existing);
+        renderMasterQuote(existing);
+      }
+      buildOrderHistoryTable();
+    }
+
+    function setupCustomerNameWatcher() {
+      var input = document.getElementById("customerName");
+      if (!input) return;
+
+      input.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          this.blur();
+        }
+      });
+
+      input.addEventListener("change", onCustomerNameChange);
+
+      input.addEventListener("input", function () {
+        updateCustomerSuggestions(this.value);
+      });
+
+      if (trimString(input.value)) {
+        onCustomerNameChange();
+      }
+    }
+
+    function exportCustomerData() {
+      try {
+        var data = {
+          type: "ams_customer_db",
+          version: 1,
+          customers: CUSTOMER_QUOTES
+        };
+        var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = "ams_customer_data.json";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        console.log("Export failed:", e);
+        alert("Could not export customer data.");
+      }
+    }
+
+    function handleImportFileChange(evt) {
+      var input = evt.target;
+      if (!input.files || !input.files[0]) return;
+
+      var file = input.files[0];
+      var reader = new FileReader();
+      reader.onload = function (e) {
+        try {
+          var text = e.target.result;
+          var data = JSON.parse(text);
+          var newMap = {};
+
+          if (data && typeof data === "object") {
+            if (data.customers && typeof data.customers === "object") {
+              newMap = data.customers;
+            } else {
+              newMap = data;
+            }
+          }
+
+          CUSTOMER_QUOTES = newMap;
+          safeSaveCustomerQuotes();
+          alert("Customer data imported successfully.");
+
+          buildManageCustomersTable();
+          var nameInput = document.getElementById("customerName");
+          if (nameInput && trimString(nameInput.value)) {
+            onCustomerNameChange();
+          } else {
+            var card = document.getElementById("masterQuoteCard");
+            if (card) card.style.display = "none";
+            buildItemsTable(null);
+          }
+        } catch (err) {
+          console.log("Import error:", err);
+          alert("Could not import file. Make sure it's a valid export from this app.");
+        } finally {
+          input.value = "";
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function openManageCustomers() {
+      var overlay = document.getElementById("manageCustomersOverlay");
+      if (!overlay) return;
+      buildManageCustomersTable();
+      hideEditCustomerSection();
+      overlay.style.display = "flex";
+    }
+
+    function closeManageCustomers() {
+      var overlay = document.getElementById("manageCustomersOverlay");
+      if (!overlay) return;
+      overlay.style.display = "none";
+    }
+
+    function hideEditCustomerSection() {
+      var sec = document.getElementById("editCustomerSection");
+      if (sec) sec.style.display = "none";
+      EDITING_CUSTOMER_KEY = null;
+      var tbody = document.getElementById("editCustomerBody");
+      if (tbody) tbody.innerHTML = "";
+    }
+
+    function buildManageCustomersTable() {
+      var tbody = document.getElementById("manageCustomersBody");
+      if (!tbody) return;
+      tbody.innerHTML = "";
+
+      var keys = Object.keys(CUSTOMER_QUOTES).sort(function(a,b) {
+        var an = (CUSTOMER_QUOTES[a].displayName || "").toLowerCase();
+        var bn = (CUSTOMER_QUOTES[b].displayName || "").toLowerCase();
+        if (an < bn) return -1;
+        if (an > bn) return 1;
+        return 0;
+      });
+
+      if (keys.length === 0) {
+        var row = document.createElement("tr");
+        var cell = document.createElement("td");
+        cell.colSpan = 3;
+        cell.textContent = "No customers saved yet.";
+        row.appendChild(cell);
+        tbody.appendChild(row);
+        return;
+      }
+
+      keys.forEach(function(key) {
+        var cust = CUSTOMER_QUOTES[key];
+        var row = document.createElement("tr");
+
+        var nameCell = document.createElement("td");
+        nameCell.textContent = cust.displayName || key;
+
+        var itemsCount = cust.items ? Object.keys(cust.items).length : 0;
+        var countCell = document.createElement("td");
+        countCell.textContent = itemsCount;
+
+        var actionsCell = document.createElement("td");
+
+        var editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.className = "small-btn";
+        editBtn.style.marginRight = "0.25rem";
+        editBtn.textContent = "Edit";
+        editBtn.onclick = function() {
+          openEditCustomer(key);
+        };
+
+        var delBtn = document.createElement("button");
+        delBtn.type = "button";
+        delBtn.className = "small-btn";
+        delBtn.textContent = "Delete";
+        delBtn.onclick = function() {
+          if (confirm("Delete customer \"" + (cust.displayName || key) + "\" and all stored pricing?")) {
+            delete CUSTOMER_QUOTES[key];
+            safeSaveCustomerQuotes();
+            buildManageCustomersTable();
+            if (CURRENT_CUSTOMER_KEY === key) {
+              CURRENT_CUSTOMER_KEY = null;
+              var card = document.getElementById("masterQuoteCard");
+              if (card) card.style.display = "none";
+              buildItemsTable(null);
+            }
+            if (EDITING_CUSTOMER_KEY === key) {
+              hideEditCustomerSection();
+            }
+          }
+        };
+
+        actionsCell.appendChild(editBtn);
+        actionsCell.appendChild(delBtn);
+
+        row.appendChild(nameCell);
+        row.appendChild(countCell);
+        row.appendChild(actionsCell);
+        tbody.appendChild(row);
+      });
+    }
+
+    function openEditCustomer(key) {
+      var cust = CUSTOMER_QUOTES[key];
+      if (!cust) return;
+      EDITING_CUSTOMER_KEY = key;
+
+      var sec = document.getElementById("editCustomerSection");
+      var nameSpan = document.getElementById("editCustomerName");
+      var tbody = document.getElementById("editCustomerBody");
+      if (!sec || !nameSpan || !tbody) return;
+
+      nameSpan.textContent = cust.displayName || key;
+      tbody.innerHTML = "";
+
+      var items = cust.items || {};
+      var codes = Object.keys(items).sort();
+
+      if (codes.length === 0) {
+        var row = document.createElement("tr");
+        var cell = document.createElement("td");
+        cell.colSpan = 4;
+        cell.textContent = "No items in this master quote yet.";
+        row.appendChild(cell);
+        tbody.appendChild(row);
+      } else {
+        codes.forEach(function(codeKey) {
+          var entry = items[codeKey];
+          var row = document.createElement("tr");
+
+          row.dataset.itemKey = codeKey;
+          row.dataset.uom = entry.uom || "";
+
+          var nameCell = document.createElement("td");
+          nameCell.textContent = entry.name || "";
+          row.appendChild(nameCell);
+
+          var codeCell = document.createElement("td");
+          codeCell.textContent = entry.code || codeKey || "";
+          row.appendChild(codeCell);
+
+          var priceCell = document.createElement("td");
+          var priceInput = document.createElement("input");
+          priceInput.type = "number";
+          priceInput.min = "0";
+          priceInput.step = "0.01";
+          priceInput.inputMode = "decimal";
+          if (typeof entry.price === "number") {
+            priceInput.value = entry.price.toFixed(2);
+          }
+          priceCell.appendChild(priceInput);
+          row.appendChild(priceCell);
+
+          var removeCell = document.createElement("td");
+          var removeBtn = document.createElement("button");
+          removeBtn.type = "button";
+          removeBtn.className = "small-btn";
+          removeBtn.textContent = "Remove";
+          removeBtn.onclick = function() {
+            tbody.removeChild(row);
+          };
+          removeCell.appendChild(removeBtn);
+          row.appendChild(removeCell);
+
+          tbody.appendChild(row);
+        });
+      }
+
+      sec.style.display = "block";
+    }
+
+    function cancelEditCustomer() {
+      hideEditCustomerSection();
+    }
+
+    function saveEditedCustomerQuote() {
+      if (!EDITING_CUSTOMER_KEY) {
+        hideEditCustomerSection();
+        return;
+      }
+      var key = EDITING_CUSTOMER_KEY;
+      var cust = CUSTOMER_QUOTES[key];
+      if (!cust) {
+        hideEditCustomerSection();
+        return;
+      }
+
+      var tbody = document.getElementById("editCustomerBody");
+      if (!tbody) {
+        hideEditCustomerSection();
+        return;
+      }
+
+      var rows = tbody.getElementsByTagName("tr");
+      var newItems = {};
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        var cells = row.cells;
+        if (!cells || cells.length < 3) continue;
+
+        var nameText = trimString(cells[0].textContent || "");
+        var codeText = trimString(cells[1].textContent || "");
+        var priceInput = cells[2].querySelector("input[type=number]");
+        var priceRaw = priceInput ? trimString(priceInput.value || "") : "";
+        var priceNum = priceRaw ? Number(priceRaw) : NaN;
+
+        if (!nameText && !codeText) continue;
+
+        var rowKey = row.dataset.itemKey || "";
+        var uomText = row.dataset.uom || "";
+
+        var itemCodeKey = rowKey || (codeText || ("NO-CODE-" + nameText));
+        newItems[itemCodeKey] = {
+          name: nameText,
+          uom: uomText,
+          code: codeText,
+          price: (!isNaN(priceNum) && priceNum > 0) ? priceNum : undefined
+        };
+      }
+
+      cust.items = newItems;
+      CUSTOMER_QUOTES[key] = cust;
+      safeSaveCustomerQuotes();
+
+      buildManageCustomersTable();
+      if (CURRENT_CUSTOMER_KEY === key) {
+        renderMasterQuote(cust);
+        buildItemsTable(cust);
+      }
+
+      hideEditCustomerSection();
+      alert("Master quote updated for " + (cust.displayName || key) + ".");
+    }
+
+    // *** NEW VERSION: plain-text email body with line totals + subtotal ***
+
+    function setupInvoiceSection() {
+      var toggle = document.getElementById("sendInvoiceToCustomer");
+      var section = document.getElementById("invoiceSection");
+      if (!toggle || !section) return;
+
+      function sync() {
+        section.style.display = toggle.checked ? "block" : "none";
+      }
+
+      toggle.addEventListener("change", sync);
+      sync();
+    }
+
+    function isLikelyEmail(value) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimString(value || ""));
+    }
+
+    function getCustomerInvoiceSettings() {
+      var invoiceToggle = document.getElementById("sendInvoiceToCustomer");
+      if (!invoiceToggle || !invoiceToggle.checked) {
+        return {
+          enabled: false
+        };
+      }
+
+      var emailEl = document.getElementById("invoiceCustomerEmail");
+      var attentionEl = document.getElementById("invoiceAttention");
+      var messageEl = document.getElementById("invoiceMessage");
+
+      var email = trimString(emailEl ? emailEl.value : "");
+      var attention = trimString(attentionEl ? attentionEl.value : "");
+      var message = trimString(messageEl ? messageEl.value : "");
+
+      if (!email) {
+        var billingEmailEl = document.getElementById("billContactEmail");
+        var shippingEmailEl = document.getElementById("shipContactEmail");
+        if (billingEmailEl) {
+          email = trimString(billingEmailEl.value || "");
+        }
+        if (!email && shippingEmailEl) {
+          email = trimString(shippingEmailEl.value || "");
+        }
+        if (emailEl && email) {
+          emailEl.value = email;
+        }
+      }
+
+      if (!email) {
+        alert("Enter a customer email address to draft the invoice email.");
+        return null;
+      }
+
+      if (!isLikelyEmail(email)) {
+        alert("Please enter a valid customer email address for the invoice.");
+        return null;
+      }
+
+      return {
+        enabled: true,
+        email: email,
+        attention: attention,
+        message: message
+      };
+    }
+
+    function buildCustomerInvoiceBody(customerName, rowsForTable, orderSubtotal, shipTo, signatureData, invoiceSettings) {
+      var lines = [];
+      if (invoiceSettings.attention) {
+        lines.push("Hello " + invoiceSettings.attention + ",");
+      } else {
+        lines.push("Hello,");
+      }
+
+      lines.push("");
+      if (invoiceSettings.message) {
+        lines.push(invoiceSettings.message);
+      } else {
+        lines.push("Thank you for your order with " + COMPANY_NAME + ".");
+      }
+
+      lines.push("");
+      lines.push("Invoice summary for " + customerName + ":");
+      lines.push("");
+
+      rowsForTable.forEach(function(r, idx) {
+        var line =
+          (idx + 1) + ". Qty " + r.qty + " - " + r.item;
+
+        if (r.uom) {
+          line += " (" + r.uom;
+          if (r.code) {
+            line += ", Code " + r.code + ")";
+          } else {
+            line += ")";
+          }
+        } else if (r.code) {
+          line += " (Code " + r.code + ")";
+        }
+
+        if (r.priceStr) {
+          line += " @ " + r.priceStr;
+        }
+        if (r.lineTotalStr) {
+          line += " = " + r.lineTotalStr;
+        }
+
+        lines.push(line);
+      });
+
+      if (orderSubtotal > 0) {
+        lines.push("");
+        lines.push("Invoice total: $" + orderSubtotal.toFixed(2));
+      }
+
+      if (shipTo) {
+        lines.push("");
+        lines.push("Order notes:");
+        lines.push(shipTo);
+      }
+
+      if (signatureData && signatureData.required) {
+        lines.push("");
+        lines.push("Approved by: " + signatureData.signerName + " on " + formatDateTime(signatureData.signedAt));
+      }
+
+      lines.push("");
+      lines.push("Please reply if anything on this invoice needs to be corrected.");
+      lines.push("");
+      lines.push("Thank you,");
+      lines.push(COMPANY_NAME);
+
+      return lines.join("\n");
+    }
+
+    function generateEmail() {
+      var customerName = trimString(document.getElementById("customerName").value);
+      var shipTo = trimString(document.getElementById("shipTo").value);
+      var signatureData = getSignatureData();
+
+      if (!customerName) {
+        alert("Please enter the customer name.");
+        return;
+      }
+
+      if (signatureData === null) {
+        return;
+      }
+
+      if (!validateNewCustomerFields()) {
+        return;
+      }
+
+      var invoiceSettings = getCustomerInvoiceSettings();
+      if (invoiceSettings === null) {
+        return;
+      }
+
+      var invalid = false;
+      var rowsForTable = [];
+      var orderSubtotal = 0;
+
+      var key = normalizeCustomerName(customerName);
+      CURRENT_CUSTOMER_KEY = key;
+      if (!CUSTOMER_QUOTES[key]) {
+        CUSTOMER_QUOTES[key] = { displayName: customerName, items: {} };
+      }
+      var custQuote = CUSTOMER_QUOTES[key];
+
+      for (var i = 0; i < ITEMS.length; i++) {
+        var checkbox = document.getElementById("itemCheck_" + i);
+        var qtyInput = document.getElementById("itemQty_" + i);
+        if (checkbox && checkbox.checked) {
+          var qty = trimString(qtyInput.value);
+          var qtyNum = Number(qty);
+          if (!qty || isNaN(qtyNum) || qtyNum <= 0) {
+            invalid = true;
+          } else {
+            var displayName = cleanName(ITEMS[i].name, ITEMS[i].uom);
+            var uomText = ITEMS[i].uom || "";
+            var codeText = ITEMS[i].code || "";
+
+            var priceInput = document.getElementById("itemPrice_" + i);
+            var priceRaw = priceInput ? trimString(priceInput.value) : "";
+            var priceNum = priceRaw ? Number(priceRaw) : NaN;
+
+            var storedPrice = null;
+            if (
+              custQuote &&
+              custQuote.items &&
+              codeText &&
+              custQuote.items[codeText] &&
+              typeof custQuote.items[codeText].price === "number"
+            ) {
+              storedPrice = custQuote.items[codeText].price;
+            }
+
+            var effectivePrice =
+              !isNaN(priceNum) && priceNum > 0 ? priceNum : storedPrice;
+            var priceStr =
+              effectivePrice != null && !isNaN(effectivePrice)
+                ? "$" + effectivePrice.toFixed(2)
+                : "";
+
+            var lineTotalNum =
+              effectivePrice != null &&
+              !isNaN(effectivePrice) &&
+              !isNaN(qtyNum)
+                ? effectivePrice * qtyNum
+                : NaN;
+            var lineTotalStr = !isNaN(lineTotalNum)
+              ? "$" + lineTotalNum.toFixed(2)
+              : "";
+
+            if (!isNaN(lineTotalNum)) {
+              orderSubtotal += lineTotalNum;
+            }
+
+            rowsForTable.push({
+              qty: qty,
+              item: displayName,
+              uom: uomText,
+              code: codeText,
+              priceStr: priceStr,
+              priceNum: effectivePrice,
+              lineTotalStr: lineTotalStr,
+              lineTotalNum: lineTotalNum
+            });
+
+            if (!custQuote.items) {
+              custQuote.items = {};
+            }
+            var codeKey = codeText || ("NO-CODE-" + displayName);
+            if (!custQuote.items[codeKey]) {
+              custQuote.items[codeKey] = {
+                name: displayName,
+                uom: uomText,
+                code: codeText,
+                price:
+                  effectivePrice != null && !isNaN(effectivePrice)
+                    ? effectivePrice
+                    : undefined
+              };
+            } else {
+              if (!isNaN(priceNum) && priceNum > 0) {
+                custQuote.items[codeKey].price = priceNum;
+              }
+              custQuote.items[codeKey].name = displayName;
+              custQuote.items[codeKey].uom = uomText;
+              custQuote.items[codeKey].code = codeText;
+            }
+          }
+        }
+      }
+
+      if (invalid) {
+        alert("For each checked item, enter a quantity of at least 1.");
+        return;
+      }
+
+      if (rowsForTable.length === 0) {
+        alert("Please select at least one item and enter quantities.");
+        return;
+      }
+
+      CUSTOMER_QUOTES[key] = custQuote;
+      safeSaveCustomerQuotes();
+      renderMasterQuote(custQuote);
+      buildItemsTable(custQuote);
+
+      var subject = "Order for " + customerName;
+
+      var lines = [];
+      lines.push("New order for customer: " + customerName);
+      lines.push("");
+      lines.push("Please pick and pack the following items:");
+      lines.push("");
+
+      rowsForTable.forEach(function(r, idx) {
+        var line =
+          (idx + 1) + ". " +
+          "Qty " + r.qty + " - " +
+          r.item;
+
+        if (r.uom) {
+          line += " (" + r.uom;
+          if (r.code) {
+            line += ", Code " + r.code + ")";
+          } else {
+            line += ")";
+          }
+        } else if (r.code) {
+          line += " (Code " + r.code + ")";
+        }
+
+        if (r.priceStr) {
+          line += " @ " + r.priceStr;
+        }
+        if (r.lineTotalStr) {
+          line += " = " + r.lineTotalStr;
+        }
+
+        lines.push(line);
+      });
+
+      if (orderSubtotal > 0) {
+        lines.push("");
+        lines.push("Order subtotal (Qty x Price): $" + orderSubtotal.toFixed(2));
+      }
+
+      if (shipTo) {
+        lines.push("");
+        lines.push("Ship To / Notes:");
+        lines.push(shipTo);
+      }
+
+      if (signatureData && signatureData.required) {
+        lines.push("");
+        lines.push("Customer approval:");
+        lines.push("Signed by: " + signatureData.signerName);
+        lines.push("Signed at: " + formatDateTime(signatureData.signedAt));
+        lines.push("Signature image saved in this device's local order history.");
+      }
+
+      var newCustomerBox = document.getElementById("newCustomer");
+      if (newCustomerBox && newCustomerBox.checked) {
+        function val2(id) {
+          var el = document.getElementById(id);
+          return el ? trimString(el.value || "") : "";
+        }
+
+        var billingSame2 = document.getElementById("billingSameAsShipping");
+
+        var sAddr1 = val2("shipAddr1");
+        var sAddr2 = val2("shipAddr2");
+        var sCity = val2("shipCity");
+        var sState = val2("shipState");
+        var sZip = val2("shipZip");
+        var sContactName = val2("shipContactName");
+        var sContactPhone = val2("shipContactPhone");
+        var sContactEmail = val2("shipContactEmail");
+
+        var bAddr1, bAddr2, bCity, bState, bZip;
+        var bContactName, bContactPhone, bContactEmail;
+
+        if (billingSame2 && billingSame2.checked) {
+          bAddr1 = sAddr1;
+          bAddr2 = sAddr2;
+          bCity = sCity;
+          bState = sState;
+          bZip = sZip;
+          bContactName = sContactName;
+          bContactPhone = sContactPhone;
+          bContactEmail = sContactEmail;
+        } else {
+          bAddr1 = val2("billAddr1");
+          bAddr2 = val2("billAddr2");
+          bCity = val2("billCity");
+          bState = val2("billState");
+          bZip = val2("billZip");
+          bContactName = val2("billContactName");
+          bContactPhone = val2("billContactPhone");
+          bContactEmail = val2("billContactEmail");
+        }
+
+        var taxExempt2 = document.getElementById("taxExempt");
+        var county2 = val2("county");
+
+        lines.push("");
+        lines.push("Customer account information");
+        lines.push("-----------------------------");
+
+        lines.push("Shipping Address:");
+        if (sAddr1) lines.push("  " + sAddr1);
+        if (sAddr2) lines.push("  " + sAddr2);
+        if (sCity || sState || sZip) {
+          lines.push(
+            "  " +
+              [sCity, sState, sZip]
+                .filter(function (p) { return p; })
+                .join(", ")
+          );
+        }
+        if (sContactName)  lines.push("  Contact Name: " + sContactName);
+        if (sContactPhone) lines.push("  Contact Phone: " + sContactPhone);
+        if (sContactEmail) lines.push("  Contact Email: " + sContactEmail);
+
+        lines.push("");
+        lines.push("Billing Address:");
+        if (bAddr1) lines.push("  " + bAddr1);
+        if (bAddr2) lines.push("  " + bAddr2);
+        if (bCity || bState || bZip) {
+          lines.push(
+            "  " +
+              [bCity, bState, bZip]
+                .filter(function (p) { return p; })
+                .join(", ")
+          );
+        }
+        if (bContactName)  lines.push("  Contact Name (AP): " + bContactName);
+        if (bContactPhone) lines.push("  Contact Phone (AP): " + bContactPhone);
+        if (bContactEmail) lines.push("  Contact Email (AP): " + bContactEmail);
+
+        lines.push("");
+        lines.push(
+          "Tax Exempt Status: " +
+            (taxExempt2 && taxExempt2.checked ? "Tax Exempt" : "Taxable")
+        );
+        if (!(taxExempt2 && taxExempt2.checked) && county2) {
+          lines.push("County: " + county2);
+        }
+      }
+
+      lines.push("");
+      lines.push("Thank you,");
+
+      var orderRecord = {
+        id: "order_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8),
+        createdAt: new Date().toISOString(),
+        customerName: customerName,
+        customerKey: key,
+        shipTo: shipTo,
+        subtotal: orderSubtotal,
+        items: rowsForTable,
+        signature: signatureData,
+        invoice: invoiceSettings && invoiceSettings.enabled ? {
+          emailedTo: invoiceSettings.email,
+          attention: invoiceSettings.attention || "",
+          preparedAt: new Date().toISOString()
+        } : null
+      };
+      saveOrderToHistory(orderRecord);
+
+      var bodyText = lines.join("\n");
+
+      var mailto =
+        "mailto:" + encodeURIComponent(WAREHOUSE_EMAIL || "") +
+        "?subject=" + encodeURIComponent(subject) +
+        "&body=" + encodeURIComponent(bodyText);
+
+      if (invoiceSettings && invoiceSettings.enabled) {
+        var invoiceSubject = "Invoice for " + customerName;
+        var invoiceBody = buildCustomerInvoiceBody(
+          customerName,
+          rowsForTable,
+          orderSubtotal,
+          shipTo,
+          signatureData,
+          invoiceSettings
+        );
+        var customerMailto =
+          "mailto:" + encodeURIComponent(invoiceSettings.email) +
+          "?subject=" + encodeURIComponent(invoiceSubject) +
+          "&body=" + encodeURIComponent(invoiceBody);
+
+        window.location.href = mailto;
+        setTimeout(function () {
+          window.open(customerMailto, "_blank");
+        }, 350);
+      } else {
+        window.location.href = mailto;
+      }
+    }
+
+    function initPage() {
+      buildItemsTable(null);
+      setupItemSearch();
+      setupNewCustomerSection();
+      setupCustomerNameWatcher();
+      setupSignatureSection();
+      setupSignaturePad();
+      setupInvoiceSection();
+      buildOrderHistoryTable();
+      toggleMasterQuote(false);
+
+      var importInput = document.getElementById("importFile");
+      if (importInput) {
+        importInput.addEventListener("change", handleImportFileChange);
+      }
+    }
+
+    function loadItemsAndInit() {
+      safeLoadCustomerQuotes();
+      safeLoadOrderHistory();
+
+      if (typeof fetch === "function") {
+        fetch("items.json")
+          .then(function (response) { return response.json(); })
+          .then(function (data) {
+            if (Object.prototype.toString.call(data) === "[object Array]") {
+              ITEMS = data;
+            } else {
+              console.log("items.json did not contain an array; using empty list.");
+              ITEMS = [];
+            }
+            initPage();
+          })
+          .catch(function (error) {
+            console.log("Error loading items.json:", error);
+            ITEMS = [];
+            initPage();
+          });
+      } else {
+        ITEMS = [];
+        initPage();
+      }
+    }
+
+    // ---- NEW: simple front-end login wiring ----
+    function initLoginUI() {
+      var loginForm = document.getElementById("loginForm");
+      var loginScreen = document.getElementById("loginScreen");
+      var app = document.getElementById("orderApp");
+      var userInfo = document.getElementById("userInfo");
+      var userNameLabel = document.getElementById("userNameLabel");
+
+      if (!loginForm || !loginScreen || !app) return;
+
+      loginForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        var emailEl = document.getElementById("loginEmail");
+        var passEl = document.getElementById("loginPassword");
+        var email = (emailEl && emailEl.value || "").trim();
+        var password = (passEl && passEl.value || "").trim();
+
+        if (!email || !password) {
+          alert("Please enter both email and password.");
+          return;
+        }
+
+        // TODO: replace this with a real API call later.
+        // For now, just pretend login succeeded.
+        loginScreen.style.display = "none";
+        app.style.display = "block";
+
+        if (userInfo && userNameLabel) {
+          userNameLabel.textContent = email;
+          userInfo.style.display = "block";
+        }
+      });
+    }
+
+    function initAll() {
+      initLoginUI();
+      loadItemsAndInit();
+
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("service-worker.js")
+          .catch(function (err) {
+            console.log("Service worker registration failed:", err);
+          });
+      }
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initAll);
+    } else {
+      initAll();
+    }
+  </script>
+</div>
+</body>
+</html>
