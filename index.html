@@ -124,6 +124,23 @@
       gap: 0.5rem;
     }
 
+
+    .customer-section-card {
+      margin-bottom: 1rem;
+    }
+    .section-shell-heading {
+      font-size: 1.15rem;
+      margin: 0 0 0.85rem 0;
+    }
+    .items-area {
+      margin-top: 1.25rem;
+      padding-top: 0.25rem;
+      border-top: 2px solid #e9e9ee;
+    }
+    .items-section-card {
+      margin-top: 0.85rem;
+    }
+
     /* Sticky header for items card */
     .sticky-header {
       position: sticky;
@@ -490,24 +507,14 @@
       word-break: break-word;
     }
 
-  
-.customer-section, .items-section {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 1rem;
-  margin-bottom: 1rem;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-}
-
-</style>
+  </style>
 </head>
 <body>
   <div class="page-shell">
 
     <!-- Top bar -->
     <div class="top-bar">
-      <div class="customer-section">
-<h1>AMS Order Form</h1>
+      <h1>AMS Order Form</h1>
       <div id="userInfo" style="font-size:0.8rem;color:#666;display:none;">
         Signed in as <span id="userNameLabel"></span>
       </div>
@@ -545,7 +552,8 @@
     <!-- Main app (hidden until "login") -->
     <div id="orderApp" style="display:none;">
 
-      <div class="card">
+      <div class="card customer-section-card">
+        <h2 class="section-shell-heading">Customer Info</h2>
         <div class="top-form-grid">
           <div>
             <div class="field-stack">
@@ -724,6 +732,9 @@
       </div>
 
 
+      <div class="items-area">
+
+
       <!-- Master quote right above item list -->
       <div class="card" id="masterQuoteCard" style="display:none;">
         <div class="master-quote-header">
@@ -749,7 +760,7 @@
         </div>
       </div>
 
-      <div class="card">
+      <div class="card items-section-card">
         <h2 style="font-size:1.1rem;margin-top:0;">Items</h2>
         <p class="note">Check the items being ordered and enter quantities.</p>
 
@@ -762,9 +773,7 @@
           <!-- Search bar -->
           <label for="itemSearch" style="margin-top:0.6rem;">Search items</label>
           <input
-            </div>
-<div class="items-section">
-<input id="itemSearch"
+            id="itemSearch"
             type="text"
             placeholder="Type to filter by name, code, or UOM"
             style="margin-bottom:0.3rem;"
@@ -775,6 +784,7 @@
         <div id="itemsContainer">
           <!-- JS fills with .item-block elements -->
         </div>
+      </div>
       </div>
 
       <!-- Manage customers overlay -->
@@ -2731,6 +2741,5 @@
       initAll();
     }
   </script>
-</div>
 </body>
 </html>
